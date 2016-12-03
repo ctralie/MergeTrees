@@ -56,3 +56,6 @@ class MergeTree(object):
     def render(self, offset):
         self.renderRec(self.root, offset)
         plt.grid()
+
+    def subdivideFromOtherTree(self, T):
+        print "TODO"
