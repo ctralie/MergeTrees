@@ -33,16 +33,6 @@ if __name__ == "__main__":
     #TA.addOffset(np.array([0, 0.3]))
     TB = getTreeB()
 
-    valsA = TA.getfValsSorted()
-    valsB = TB.getfValsSorted()
-
-    TB.subdivideFromValues(valsB)
-    TA.subdivideFromValues(valsA)
-
-    fig = plt.figure()
-    TA.render(np.array([0, 0]))
-    TB.render(np.array([6, 0]))
-    ax = fig.gca()
-    ax.set_yticks(np.arange(-1, 9, 0.5))
-    plt.grid()
+    C = doBruteForceMap(TA, TB)
+    drawMap(C, np.array([0, 0]), np.array([6, 0]))
     plt.show()

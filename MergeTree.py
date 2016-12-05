@@ -4,6 +4,10 @@ from bisect import bisect_left
 
 
 
+##########################################################
+#              Partial Order Functions                   #
+##########################################################
+
 #For trees embedded in the plane corresponding to
 #1D functions, make a total order based on the X
 #coordinate
@@ -23,6 +27,156 @@ def PartialOrder3DXY(N1, N2):
     elif X1 >= X2 and Y1 >= Y2:
         return 1
     return 0
+
+
+##########################################################
+#           Merge Tree Utility Functions                 #
+##########################################################
+
+def isAncestor(node, ancestor):
+    if not node.parent:
+        return False
+    if node.parent == ancestor:
+        return True
+    return isAncestor(node.parent, ancestor)
+
+##########################################################
+#                   Merge Tree Maps                      #
+##########################################################
+
+class ChiralMap(object):
+    def __init__(self, TA, TB):
+        self.TA = TA
+        self.TB = TB
+        self.cost = np.inf
+        self.Map = {}
+        self.mapsChecked = 0
+
+def drawMap(ChiralMap, offsetA, offsetB, yres = 0.5):
+    (TA, TB) = (ChiralMap.TA, ChiralMap.TB)
+    plt.clf()
+    plt.hold(True)
+    #First draw the two trees
+    ax = plt.subplot(111)
+    TA.render(offsetA)
+    TB.render(offsetB)
+    #Put y ticks at every unique y value
+    yvals = TA.getfValsSorted().tolist() + TB.getfValsSorted().tolist()
+    yvals = np.sort(np.unique(np.array(yvals)))
+    ax.set_yticks(yvals)
+    plt.grid()
+    plt.title("Cost = %g"%ChiralMap.cost)
+
+    #Now draw arcs between matched nodes and draw Xs over
+    #nodes that didn't get matched
+    Map = ChiralMap.Map
+    for A in Map:
+        B = Map[A]
+        ax = A.X + offsetA
+        if not B:
+            #Draw an X over this node
+            plt.scatter([ax[0]], [ax[1]], 60, 'k', 'x')
+        else:
+            bx = B.X + offsetB + 0.1*np.random.randn(2)
+            plt.plot([ax[0], bx[0]], [ax[1], bx[1]], 'b')
+
+
+#TA: Tree A, TB: Tree B,
+#Map: Tree map in the form [[NodeA, NodeB], [NodeA, NodeB], ...]
+#ia: Index of currently considered node in TA
+#BMapped: Boolean array indicating which nodes in B have been hit
+#C: Best chiral map found so far
+#cost: Current cost
+def doBruteForceMapRec(TA, TB, Map, ia, BMapped, C, cost):
+    #Has every node in A been processed?
+    if ia >= len(TA.nodesList):
+        C.mapsChecked += 1
+        #Add the cost of every untouched node in TB
+        for ib in range(len(BMapped)):
+            if not BMapped[ib]:
+                NB = TB.nodesList[ib]
+                cost += np.abs(NB.getfVal() - NB.parent.getfVal())
+        if cost < C.cost:
+            #This is the best found map so far, so update the cost
+            #and copy it over
+            print "Best map so far found cost %g"%cost
+            C.cost = cost
+            for A in Map:
+                C.Map[A] = Map[A]
+        return
+
+    #If there are still nodes in A to process, keep building the map
+    NA = TA.nodesList[ia]
+    fNA = NA.getfVal()
+    #Step 1: Come up with all valid nodes that TA[i] can map to
+    #in TB including the null node, as well as their costs
+    ValidBNodes = []
+    for ib in range(len(BMapped)):
+        if BMapped[ib]:
+            #This node is already in the image of the currently
+            #considered map
+            continue
+        NB = TB.nodesList[ib]
+        costAdd = np.abs(fNA - NB.getfVal())
+        #Before checking anything else, see if the cost would exceed
+        #the best cost found so far
+        if cost + costAdd > C.cost:
+            continue
+        #First, check that ancestral relationships are preserved
+        #That is, if A is an ancestor of NA, then
+        #Map[A] should be an ancestor of NB, and vice versa
+        valid = True
+        for A in Map:
+            if not Map[A]:
+                continue
+            if isAncestor(A, NA) and not isAncestor(Map[A], NB):
+                valid = False
+                break
+            if isAncestor(NA, A) and not isAncestor(NB, Map[A]):
+                valid = False
+                break
+            #Second, check that partial order is preserved
+            if TA.orderFn(A, NA) != TB.orderFn(Map[A], NB):
+                valid = False
+        if valid:
+            ValidBNodes.append((ib, NB, costAdd))
+
+    #Step 2: Try each valid target B node in turn, and recurse
+    for (ib, NB, costAdd) in ValidBNodes:
+        BMapped[ib] = True
+        Map[NA] = NB
+        doBruteForceMapRec(TA, TB, Map, ia+1, BMapped, C, cost + costAdd)
+        BMapped[ib] = False
+
+    #Also include a map to the "null node.""  In this case, the cost is
+    #the distance of the unmapped node to its direct parent
+    Map[NA] = None
+    costAdd = np.abs(fNA - NA.parent.getfVal())
+    doBruteForceMapRec(TA, TB, Map, ia+1, BMapped, C, cost + costAdd)
+    return C
+
+
+def doBruteForceMap(TA, TB):
+    #Step 1: Subdivide TA and TB
+    valsA = TA.getfValsSorted()
+    valsB = TB.getfValsSorted()
+    TB.subdivideFromValues(valsB)
+    TA.subdivideFromValues(valsA)
+    TA.updateNodesList()
+    TB.updateNodesList()
+
+    #Step 2: Map root to root and start recursion
+    Map = {TA.root:TB.root}
+    C = ChiralMap(TA, TB)
+    BMapped = [False]*len(TB.nodesList)
+    BMapped[0] = True
+    cost = np.abs(TA.root.getfVal() - TB.root.getfVal())
+    doBruteForceMapRec(TA, TB, Map, 1, BMapped, C, cost)
+    return C
+
+##########################################################
+#               Core Merge Tree Objects                  #
+##########################################################
 
 class MergeNode(object):
     #X: Rendering position.  Last coordinate is assumed to be the function value
@@ -51,6 +205,7 @@ class MergeTree(object):
         self.root = None
         self.orderFn = orderFn
         self.fVals = []
+        self.nodesList = []
 
     def addOffsetRec(self, node, offset):
         node.X += offset
@@ -60,22 +215,22 @@ class MergeTree(object):
     def addOffset(self, offset):
         self.addOffsetRec(self.root, offset)
 
-    def renderRec(self, node, offset):
+    def renderRec(self, node, offset, pointSize = 200):
         X = node.X + offset
         if node.newNode:
             #Render new nodes blue
-            plt.scatter(X[0], X[1], 40, 'b')
+            plt.scatter(X[0], X[1], pointSize, 'b')
         else:
-            plt.scatter(X[0], X[1], 40, 'r')
+            plt.scatter(X[0], X[1], pointSize, 'r')
         if node.parent:
             Y = node.parent.X + offset
             plt.plot([X[0], Y[0]], [X[1], Y[1]], 'k')
         for C in node.children:
             self.renderRec(C, offset)
 
-    def render(self, offset):
+    def render(self, offset, pointSize = 200):
         plt.hold(True)
-        self.renderRec(self.root, offset)
+        self.renderRec(self.root, offset, pointSize)
 
     def getfValsSortedRec(self, node):
         self.fVals.append(node.getfVal())
@@ -89,6 +244,15 @@ class MergeTree(object):
         self.fVals = sorted(self.fVals)
         self.fVals = np.unique(self.fVals)
         return self.fVals
+
+    def updateNodesListRec(self, N):
+        self.nodesList.append(N)
+        for C in N.children:
+            self.updateNodesListRec(C)
+
+    def updateNodesList(self):
+        self.nodesList = []
+        self.updateNodesListRec(self.root)
 
     #hi: Index such that vals[0:hi] < N1.fVal
     def subdivideEdgesRec(self, N1, vals, hi):
@@ -123,7 +287,6 @@ class MergeTree(object):
                 N1.children[i] = newNodes[0]
                 newNodes[0].parent = N1
             self.subdivideEdgesRec(N2, vals, lo)
-
 
     #Note: For simplicity of implementation, this
     #function assumes that parent nodes have higher
