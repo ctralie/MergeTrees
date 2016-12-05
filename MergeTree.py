@@ -51,6 +51,7 @@ class ChiralMap(object):
         self.cost = np.inf
         self.Map = {}
         self.mapsChecked = 0
+        self.BsNotHit = []
 
 def drawMap(ChiralMap, offsetA, offsetB, yres = 0.5):
     (TA, TB) = (ChiralMap.TA, ChiralMap.TB)
@@ -75,11 +76,18 @@ def drawMap(ChiralMap, offsetA, offsetB, yres = 0.5):
         ax = A.X + offsetA
         if not B:
             #Draw an X over this node
-            plt.scatter([ax[0]], [ax[1]], 60, 'k', 'x')
+            plt.scatter([ax[0]], [ax[1]], 300, 'k', 'x')
         else:
-            bx = B.X + offsetB + 0.1*np.random.randn(2)
+            bx = B.X + offsetB# + 0.1*np.random.randn(2)
             plt.plot([ax[0], bx[0]], [ax[1], bx[1]], 'b')
+    for B in ChiralMap.BsNotHit:
+        bx = B.X + offsetB
+        plt.scatter([bx[0]], [bx[1]], 300, 'k', 'x')
 
+class DebugOffsets(object):
+    def __init__(self, offsetA, offsetB):
+        self.offsetA = offsetA
+        self.offsetB = offsetB
 
 #TA: Tree A, TB: Tree B,
 #Map: Tree map in the form [[NodeA, NodeB], [NodeA, NodeB], ...]
@@ -87,20 +95,33 @@ def drawMap(ChiralMap, offsetA, offsetB, yres = 0.5):
 #BMapped: Boolean array indicating which nodes in B have been hit
 #C: Best chiral map found so far
 #cost: Current cost
-def doBruteForceMapRec(TA, TB, Map, ia, BMapped, C, cost):
+def doBruteForceMapRec(TA, TB, Map, ia, BMapped, C, cost, debug = None):
     #Has every node in A been processed?
     if ia >= len(TA.nodesList):
         C.mapsChecked += 1
         #Add the cost of every untouched node in TB
+        BsNotHit = []
         for ib in range(len(BMapped)):
             if not BMapped[ib]:
                 NB = TB.nodesList[ib]
+                BsNotHit.append(NB)
                 cost += np.abs(NB.getfVal() - NB.parent.getfVal())
+
+        if debug:
+            #Plot for debugging
+            thisC = ChiralMap(TA, TB)
+            thisC.cost = cost
+            thisC.Map = Map
+            thisC.BsNotHit = BsNotHit
+            drawMap(thisC, debug.offsetA, debug.offsetB)
+            plt.savefig("%i.svg"%C.mapsChecked, bbox_inches = 'tight')
+
         if cost < C.cost:
             #This is the best found map so far, so update the cost
             #and copy it over
             print "Best map so far found cost %g"%cost
             C.cost = cost
+            C.BsNotHit = BsNotHit
             for A in Map:
                 C.Map[A] = Map[A]
         return
@@ -129,15 +150,17 @@ def doBruteForceMapRec(TA, TB, Map, ia, BMapped, C, cost):
         for A in Map:
             if not Map[A]:
                 continue
-            if isAncestor(A, NA) and not isAncestor(Map[A], NB):
-                valid = False
-                break
-            if isAncestor(NA, A) and not isAncestor(NB, Map[A]):
-                valid = False
-                break
-            #Second, check that partial order is preserved
+            #First, check that partial order is preserved
             if TA.orderFn(A, NA) != TB.orderFn(Map[A], NB):
                 valid = False
+                break
+            #Second, check the ancestral condition
+            if isAncestor(A, NA) and (not isAncestor(Map[A], NB)):
+                valid = False
+                break
+            if isAncestor(NA, A) and (not isAncestor(NB, Map[A])):
+                valid = False
+                break
         if valid:
             ValidBNodes.append((ib, NB, costAdd))
 
@@ -145,23 +168,27 @@ def doBruteForceMapRec(TA, TB, Map, ia, BMapped, C, cost):
     for (ib, NB, costAdd) in ValidBNodes:
         BMapped[ib] = True
         Map[NA] = NB
-        doBruteForceMapRec(TA, TB, Map, ia+1, BMapped, C, cost + costAdd)
+        doBruteForceMapRec(TA, TB, Map, ia+1, BMapped, C, cost + costAdd, debug)
         BMapped[ib] = False
 
     #Also include a map to the "null node.""  In this case, the cost is
     #the distance of the unmapped node to its direct parent
     Map[NA] = None
     costAdd = np.abs(fNA - NA.parent.getfVal())
-    doBruteForceMapRec(TA, TB, Map, ia+1, BMapped, C, cost + costAdd)
+    doBruteForceMapRec(TA, TB, Map, ia+1, BMapped, C, cost + costAdd, debug)
     return C
 
-
-def doBruteForceMap(TA, TB):
+#TA: First tree, TB: Second Tree
+#offsetA, offsetB: For rendering debugging
+def doBruteForceMap(TA, TB, debug = None):
     #Step 1: Subdivide TA and TB
     valsA = TA.getfValsSorted()
     valsB = TB.getfValsSorted()
-    TB.subdivideFromValues(valsB)
-    TA.subdivideFromValues(valsA)
+    #Subdivide both edges to make sure internal nodes get matched to internal nodes by horizontal lines
+    vals = np.array(valsA.tolist() + valsB.tolist())
+    vals = np.sort(np.unique(vals))
+    TB.subdivideFromValues(vals)
+    TA.subdivideFromValues(vals)
     TA.updateNodesList()
     TB.updateNodesList()
 
@@ -171,7 +198,7 @@ def doBruteForceMap(TA, TB):
     BMapped = [False]*len(TB.nodesList)
     BMapped[0] = True
     cost = np.abs(TA.root.getfVal() - TB.root.getfVal())
-    doBruteForceMapRec(TA, TB, Map, 1, BMapped, C, cost)
+    doBruteForceMapRec(TA, TB, Map, 1, BMapped, C, cost, debug)
     return C
 
 ##########################################################
@@ -267,9 +294,15 @@ class MergeTree(object):
             lo = bisect_left(vals, a)
             splitVals = []
             for k in range(lo, hi+1):
+                if k >= len(vals):
+                    continue
                 if vals[k] <= a or vals[k] >= b:
                     continue
                 splitVals.append(vals[k])
+            #Nodes were sorted in increasing order of height
+            #but need to add them in decreasing order
+            #for the parent relationships to work out
+            splitVals = splitVals[::-1]
             if len(splitVals) > 0:
                 #Now split the edge between N1 and N2
                 newNodes = []

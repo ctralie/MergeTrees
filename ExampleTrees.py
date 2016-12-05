@@ -30,9 +30,12 @@ def getTreeB():
 
 if __name__ == "__main__":
     TA = getTreeA()
-    #TA.addOffset(np.array([0, 0.3]))
+    TA.addOffset(np.array([0, 0.3]))
     TB = getTreeB()
+    offsetA = np.array([0, 0])
+    offsetB = np.array([6, 0])
+    debug = DebugOffsets(offsetA, offsetB)
 
     C = doBruteForceMap(TA, TB)
-    drawMap(C, np.array([0, 0]), np.array([6, 0]))
+    drawMap(C, offsetA, offsetB)
     plt.show()
