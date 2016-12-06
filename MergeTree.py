@@ -66,7 +66,7 @@ def drawMap(ChiralMap, offsetA, offsetB, yres = 0.5):
     yvals = np.sort(np.unique(np.array(yvals)))
     ax.set_yticks(yvals)
     plt.grid()
-    plt.title("Cost = %g"%ChiralMap.cost)
+    plt.title("Cost = %g\nmapsChecked = %i"%(ChiralMap.cost, ChiralMap.mapsChecked))
 
     #Now draw arcs between matched nodes and draw Xs over
     #nodes that didn't get matched
@@ -208,7 +208,7 @@ def doBruteForceMap(TA, TB, debug = None):
 class MergeNode(object):
     #X: Rendering position.  Last coordinate is assumed to be the function value
     #to be the function value
-    #newNode: Whether this node was added in a subdivision (for debugging)
+    #newNode: Whether this node was added in a subdivision
     def __init__(self, X, newNode = False):
         self.parent = None
         self.children = []

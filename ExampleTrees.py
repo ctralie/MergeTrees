@@ -28,6 +28,29 @@ def getTreeB():
     B.addChildren([D, E])
     return T
 
+def getTreeC():
+    T = MergeTree(TotalOrder2DX)
+    T.root = MergeNode(np.array([0, 10]))
+    A = MergeNode(np.array([0, 7]))
+    T.root.addChild(A)
+    B = MergeNode(np.array([-4, 0]))
+    C = MergeNode(np.array([2, 3]))
+    A.addChildren([B, C])
+    return T
+
+def getTreeD():
+    T = MergeTree(TotalOrder2DX)
+    T.root = MergeNode(np.array([0, 10]))
+    A = MergeNode(np.array([0, 7]))
+    T.root.addChild(A)
+    B = MergeNode(np.array([-4, 0]))
+    C = MergeNode(np.array([1, 5]))
+    A.addChildren([B, C])
+    D = MergeNode(np.array([0.5, 4]))
+    E = MergeNode(np.array([2, 3]))
+    C.addChildren([D, E])
+    return T
+
 if __name__ == "__main__":
     TA = getTreeA()
     TA.addOffset(np.array([0, 0.3]))
