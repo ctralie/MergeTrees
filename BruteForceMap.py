@@ -18,7 +18,7 @@ def doBruteForceMapRec(TA, TB, Map, ia, BMapped, C, cost, debug = None):
                 BsNotHit.append(NB)
                 if not NB.subdivided: #Cost of deleting subdivided nodes is 0
                     P = getParentNotSubdivided(NB)
-                    cost += np.abs(NB.getfVal() - P.getfVal())
+                    cost += np.abs(P.getfVal() - NB.getfVal())
 
         if debug:
             #Plot for debugging
@@ -102,15 +102,7 @@ def doBruteForceMapRec(TA, TB, Map, ia, BMapped, C, cost, debug = None):
 #offsetA, offsetB: For rendering debugging
 def doBruteForceMap(TA, TB, debug = None):
     #Step 1: Subdivide TA and TB
-    valsA = TA.getfValsSorted()
-    valsB = TB.getfValsSorted()
-    #Subdivide both edges to make sure internal nodes get matched to internal nodes by horizontal lines
-    vals = np.array(valsA.tolist() + valsB.tolist())
-    vals = np.sort(np.unique(vals))
-    TB.subdivideFromValues(vals)
-    TA.subdivideFromValues(vals)
-    TA.updateNodesList()
-    TB.updateNodesList()
+    subdivideTreesMutual(TA, TB)
 
     #Step 2: Map root to root and start recursion
     Map = {TA.root:TB.root}

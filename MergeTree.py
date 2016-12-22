@@ -47,6 +47,17 @@ def getParentNotSubdivided(N):
     else:
         return N.parent
 
+def subdivideTreesMutual(TA, TB):
+    valsA = TA.getfValsSorted()
+    valsB = TB.getfValsSorted()
+    #Subdivide both edges to make sure internal nodes get matched to internal nodes by horizontal lines
+    vals = np.array(valsA.tolist() + valsB.tolist())
+    vals = np.sort(np.unique(vals))
+    TB.subdivideFromValues(vals)
+    TA.subdivideFromValues(vals)
+    TA.updateNodesList()
+    TB.updateNodesList()
+
 ##########################################################
 #                   Merge Tree Maps                      #
 ##########################################################
@@ -160,6 +171,16 @@ class MergeTree(object):
     def render(self, offset, drawSubdivided = True, pointSize = 200):
         plt.hold(True)
         self.renderRec(self.root, offset, drawSubdivided, pointSize)
+
+    def sortChildrenTotalOrderRec(self, N):
+        N.children = sorted(N.children, cmp=self.orderFn)
+        for C in N.children:
+            self.sortChildrenTotalOrderRec(C)
+
+    #Sort the children by their total order (behavior undefined
+    #if orderFn is a partial order)
+    def sortChildrenTotalOrder(self):
+        self.sortChildrenTotalOrderRec(self.root)
 
     def getfValsSortedRec(self, node):
         self.fVals.append(node.getfVal())

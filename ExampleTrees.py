@@ -1,5 +1,6 @@
 from MergeTree import *
 from BruteForceMap import *
+from ZSSMap import *
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -63,13 +64,15 @@ def getTreeD():
     return T
 
 if __name__ == "__main__":
-    TA = getTreeAA()
-    TA.addOffset(np.array([0, 0.3]))
-    TB = getTreeAA()
+    TA = getTreeA()
+    #TA.addOffset(np.array([0, 0.3]))
+    TB = getTreeB()
     offsetA = np.array([0, 0])
     offsetB = np.array([6, 0])
     debug = DebugOffsets(offsetA, offsetB)
 
-    C = doBruteForceMap(TA, TB)
-    drawMap(C, offsetA, offsetB, drawSubdivided = True)
-    plt.show()
+    print doZSSMap(TA, TB)
+
+    #C = doBruteForceMap(TA, TB)
+    #drawMap(C, offsetA, offsetB, drawSubdivided = True)
+    #plt.show()
