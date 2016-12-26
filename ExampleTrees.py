@@ -63,16 +63,44 @@ def getTreeD():
     C.addChildren([D, E])
     return T
 
+#E/F: Simplest example pair I can come up with that has exactly
+#one subdivided node per tree
+def getTreeE():
+    T = MergeTree(TotalOrder2DX)
+    T.root = MergeNode(np.array([0, 5]))
+    A = MergeNode(np.array([-2, 3]))
+    B = MergeNode(np.array([1, 4]))
+    T.root.addChildren([A, B])
+    C = MergeNode(np.array([0.5, 3]))
+    D = MergeNode(np.array([2, 3]))
+    B.addChildren([C, D])
+    return T
+
+def getTreeF():
+    T = MergeTree(TotalOrder2DX)
+    T.root = MergeNode(np.array([0, 5]))
+    A = MergeNode(np.array([-1, 4]))
+    B = MergeNode(np.array([2, 3]))
+    T.root.addChildren([A, B])
+    C = MergeNode(np.array([-2, 3]))
+    D = MergeNode(np.array([-0.5, 3]))
+    A.addChildren([C, D])
+    return T
+
 if __name__ == "__main__":
-    TA = getTreeA()
-    #TA.addOffset(np.array([0, 0.3]))
-    TB = getTreeB()
+    TA = getTreeAA()
+    TA.addOffset(np.array([0, 0.3]))
+    TB = getTreeAA()
     offsetA = np.array([0, 0])
     offsetB = np.array([6, 0])
     debug = DebugOffsets(offsetA, offsetB)
 
-    print doZSSMap(TA, TB)
+    (KeyrootMaps, treedists) = doZSSMap(TA, TB)
+    for (i, j) in KeyrootMaps:
+        print "(%i, %i)"%(i, j)
+        #print KeyrootMaps[(i, j)]
+    print treedists
 
-    #C = doBruteForceMap(TA, TB)
-    #drawMap(C, offsetA, offsetB, drawSubdivided = True)
-    #plt.show()
+    C = doBruteForceMap(TA, TB)
+    drawMap(C, offsetA, offsetB, drawSubdivided = True)
+    plt.show()
