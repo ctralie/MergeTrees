@@ -84,7 +84,7 @@ def drawMap(ChiralMap, offsetA, offsetB, yres = 0.5, drawSubdivided = True):
     yvals = np.sort(np.unique(np.array(yvals)))
     ax.set_yticks(yvals)
     plt.grid()
-    plt.title("Cost = %g\nmapsChecked = %i"%(ChiralMap.cost, ChiralMap.mapsChecked))
+    plt.title("Cost = %g\nmapsChecked = %s"%(ChiralMap.cost, ChiralMap.mapsChecked))
 
     #Now draw arcs between matched nodes and draw Xs over
     #nodes that didn't get matched

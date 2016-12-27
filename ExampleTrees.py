@@ -95,12 +95,10 @@ if __name__ == "__main__":
     offsetB = np.array([6, 0])
     debug = DebugOffsets(offsetA, offsetB)
 
-    (KeyrootMaps, treedists) = doZSSMap(TA, TB)
-    for (i, j) in KeyrootMaps:
-        print "(%i, %i)"%(i, j)
-        #print KeyrootMaps[(i, j)]
-    print treedists
+    #C = doBruteForceMap(TA, TB)
+    C = doZSSMap(TA, TB)
+    print C.cost
 
-    C = doBruteForceMap(TA, TB)
+
     drawMap(C, offsetA, offsetB, drawSubdivided = True)
     plt.show()

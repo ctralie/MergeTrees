@@ -25,29 +25,38 @@ def insertRemoveCost(ZSSNode):
     else:
         P = getParentNotSubdivided(N)
         if not P: #N must be the root
-            return 1e9 #Return a very large number
+            return np.inf #Roots must match to roots; no deleting allowed
         return np.abs(P.getfVal() - N.getfVal())
 
 def updateCost(ZSSA, ZSSB):
     A = ZSSA.label
     B = ZSSB.label
     cost = np.abs(A.getfVal() - B.getfVal())
-    # if A.subdivided or B.subdivided:
-    #     print "Matching subdivided, cost = ", cost
-    # else:
-    #     print "Not matching subdivided, cost = ", cost
     return cost
 
 def doZSSMap(TA, TB):
     subdivideTreesMutual(TA, TB)
-    # TA.render(np.array([0, 0]))
-    # plt.hold(True)
-    # TB.render(np.array([6, 0]))
-    # plt.show()
-
     TA.sortChildrenTotalOrder()
     TB.sortChildrenTotalOrder()
 
     TAZSS = convertToZSSTree(TA)
     TBZSS = convertToZSSTree(TB)
-    return distance(TAZSS, TBZSS, Node.get_children, insertRemoveCost, insertRemoveCost, updateCost)
+
+    #Call the ZSS library and my backtracing library
+    (KeyrootMaps, KeyrootPtrs, treedists) = distance(TAZSS, TBZSS, Node.get_children, insertRemoveCost, insertRemoveCost, updateCost)
+    (Map, BsNotHit) = zssBacktrace(KeyrootPtrs)
+
+    #Now copy over the
+    c = ChiralMap(TA, TB)
+    c.TA = TA
+    c.TB = TB
+    c.cost = treedists[-1, -1]
+    c.mapsChecked = 'ZSS'
+    c.BsNotHit = [N.label for N in BsNotHit]
+    for AZSS in Map:
+        A = AZSS.label
+        B = Map[AZSS]
+        if B:
+            B = B.label
+        c.Map[A] = B
+    return c
