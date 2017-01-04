@@ -1,12 +1,15 @@
 from MergeTree import *
 
-#TA: Tree A, TB: Tree B,
-#Map: Tree map in the form [[NodeA, NodeB], [NodeA, NodeB], ...]
-#ia: Index of currently considered node in TA
-#BMapped: Boolean array indicating which nodes in B have been hit
-#C: Best chiral map found so far
-#cost: Current cost
 def doBruteForceMapRec(TA, TB, Map, ia, BMapped, C, cost, debug = None):
+    """
+    Recursive helper function for brute force mapping
+    TA: Tree A, TB: Tree B,
+    Map: Tree map in the form [[NodeA, NodeB], [NodeA, NodeB], ...]
+    ia: Index of currently considered node in TA
+    BMapped: Boolean array indicating which nodes in B have been hit
+    C: Best chiral map found so far
+    cost: Current cost
+    """
     #Has every node in A been processed?
     if ia >= len(TA.nodesList):
         C.mapsChecked += 1
@@ -98,9 +101,12 @@ def doBruteForceMapRec(TA, TB, Map, ia, BMapped, C, cost, debug = None):
     doBruteForceMapRec(TA, TB, Map, ia+1, BMapped, C, cost + costAdd, debug)
     return C
 
-#TA: First tree, TB: Second Tree
-#offsetA, offsetB: For rendering debugging
 def doBruteForceMap(TA, TB, debug = None):
+    """
+    Brute force mapping entry pointSize
+    TA: First tree, TB: Second Tree
+    offsetA, offsetB: For rendering debugging
+    """
     #Step 1: Subdivide TA and TB
     subdivideTreesMutual(TA, TB)
 

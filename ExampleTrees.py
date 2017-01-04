@@ -1,17 +1,16 @@
 from MergeTree import *
 from BruteForceMap import *
 from ZSSMap import *
+from PolynomialFit import *
 import numpy as np
 import matplotlib.pyplot as plt
 
 def getTreeA():
     T = MergeTree(TotalOrder2DX)
-    T.root = MergeNode(np.array([0, 8]))
-    A = MergeNode(np.array([0, 5]))
-    T.root.addChild(A)
+    T.root = MergeNode(np.array([0, 5]))
     B = MergeNode(np.array([-3, 0]))
     C = MergeNode(np.array([1, 4]))
-    A.addChildren([B, C])
+    T.root.addChildren([B, C])
     D = MergeNode(np.array([0.5, 3.5]))
     E = MergeNode(np.array([2, 2]))
     C.addChildren([D, E])
@@ -29,12 +28,10 @@ def getTreeAA():
 
 def getTreeB():
     T = MergeTree(TotalOrder2DX)
-    T.root = MergeNode(np.array([0, 8]))
-    A = MergeNode(np.array([0, 5]))
-    T.root.addChild(A)
+    T.root = MergeNode(np.array([0, 5]))
     B = MergeNode(np.array([-1, 4]))
     C = MergeNode(np.array([2, 2]))
-    A.addChildren([B, C])
+    T.root.addChildren([B, C])
     D = MergeNode(np.array([-2, 0]))
     E = MergeNode(np.array([-0.5, 3.5]))
     B.addChildren([D, E])
@@ -88,9 +85,14 @@ def getTreeF():
     return T
 
 if __name__ == "__main__":
-    TA = getTreeAA()
-    TA.addOffset(np.array([0, 0.3]))
-    TB = getTreeAA()
+    TA = getTreeA()
+    X = TA.getCriticalPtsList()
+    xl = np.min(X[:, 0])
+    xr = np.max(X[:, 0])
+    polyFit(X, np.linspace(xl-0.2, xr+0.2, 100))
+
+    #TA.addOffset(np.array([0, 0.3]))
+    TB = getTreeB()
     offsetA = np.array([0, 0])
     offsetB = np.array([6, 0])
     debug = DebugOffsets(offsetA, offsetB)

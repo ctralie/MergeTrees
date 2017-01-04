@@ -1,4 +1,4 @@
-#Wrap around the ZSS library for Zhang/Shasha
+"""Wrap around the ZSS library for Zhang/Shasha"""
 import sys
 sys.path.append("zhang-shasha/zss")
 from simple_tree import *
@@ -46,7 +46,7 @@ def doZSSMap(TA, TB):
     (KeyrootMaps, KeyrootPtrs, treedists) = distance(TAZSS, TBZSS, Node.get_children, insertRemoveCost, insertRemoveCost, updateCost)
     (Map, BsNotHit) = zssBacktrace(KeyrootPtrs)
 
-    #Now copy over the
+    #Now copy over the returned map
     c = ChiralMap(TA, TB)
     c.TA = TA
     c.TB = TB

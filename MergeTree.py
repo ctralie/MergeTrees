@@ -6,18 +6,22 @@ from bisect import bisect_left
 #              Partial Order Functions                   #
 ##########################################################
 
-#For trees embedded in the plane corresponding to
-#1D functions, make a total order based on the X
-#coordinate
 def TotalOrder2DX(N1, N2):
+    """
+    For trees embedded in the plane corresponding to
+    1D functions, make a total order based on the X
+    coordinate
+    """
     if N1.X[0] <= N2.X[0]:
         return -1
     return 1
 
-#For trees build on functions over R2 (such as SSMs)
-#which live in 3D, use the domain to create a partial
-#order
 def PartialOrder3DXY(N1, N2):
+    """
+    For trees build on functions over R2 (such as SSMs)
+    #which live in 3D, use the domain to create a partial
+    order
+    """
     [X1, Y1] = [N1.X[0], N1.X[1]]
     [X2, Y2] = [N2.X[0], N2.X[1]]
     if X1 <= X2 and Y1 <= Y2:
@@ -115,9 +119,11 @@ class DebugOffsets(object):
 ##########################################################
 
 class MergeNode(object):
-    #X: Rendering position.  Last coordinate is assumed to be the function value
-    #to be the function value
-    #subdivided: Whether this node was added in a subdivision
+    """
+    X: Rendering position.  Last coordinate is assumed to be the function value
+    to be the function value
+    subdivided: Whether this node was added in a subdivision
+    """
     def __init__(self, X, subdivided = False):
         self.parent = None
         self.children = []
@@ -138,8 +144,10 @@ class MergeNode(object):
     def __str__(self):
         return "Node: X = %s, Subdivided = %i"%(self.X, self.subdivided)
 
-#Holds nodes starting at root, and a table of partial order info (-1 for less than, 1 for greater than, 0 for undefined)
 class MergeTree(object):
+    """
+    Holds nodes starting at root, and a table of partial order info (-1 for less than, 1 for greater than, 0 for undefined)
+    """
     def __init__(self, orderFn):
         self.root = None
         self.orderFn = orderFn
@@ -177,9 +185,12 @@ class MergeTree(object):
         for C in N.children:
             self.sortChildrenTotalOrderRec(C)
 
-    #Sort the children by their total order (behavior undefined
-    #if orderFn is a partial order)
+
     def sortChildrenTotalOrder(self):
+        """
+        Sort the children by their total order (behavior undefined
+        if orderFn is a partial order)
+        """
         self.sortChildrenTotalOrderRec(self.root)
 
     def getfValsSortedRec(self, node):
@@ -187,8 +198,8 @@ class MergeTree(object):
         for n in node.children:
             self.getfValsSortedRec(n)
 
-    #Get a sorted list of all of the function values
     def getfValsSorted(self):
+        """Get a sorted list of all of the function values"""
         self.fVals = []
         self.getfValsSortedRec(self.root)
         self.fVals = sorted(self.fVals)
@@ -204,8 +215,21 @@ class MergeTree(object):
         self.nodesList = []
         self.updateNodesListRec(self.root)
 
-    #hi: Index such that vals[0:hi] < N1.fVal
+    def getCriticalPtsList(self):
+        """Return an Nxd numpy array of the N critical points"""
+        self.updateNodesList()
+        N = len(self.nodesList)
+        X = np.zeros((N, self.nodesList[0].X.size))
+        for i in range(N):
+            X[i, :] = self.nodesList[i].X
+        return X
+
     def subdivideEdgesRec(self, N1, vals, hi):
+        """
+        Recursive helper function for subdividing edges with all elements
+        in "vals"
+        hi: Index such that vals[0:hi] < N1.fVal
+        """
         b = N1.getfVal()
         if b <= vals[0]:
             return
@@ -244,9 +268,11 @@ class MergeTree(object):
                 newNodes[0].parent = N1
             self.subdivideEdgesRec(N2, vals, lo)
 
-    #Note: For simplicity of implementation, this
-    #function assumes that parent nodes have higher
-    #function values than their children
     def subdivideFromValues(self, vals):
+        """
+        Note: For simplicity of implementation, this
+        function assumes that parent nodes have higher
+        function values than their children
+        """
         hi = bisect_left(vals, self.root.getfVal())
         self.subdivideEdgesRec(self.root, vals, hi)
