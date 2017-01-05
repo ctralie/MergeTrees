@@ -1,8 +1,9 @@
 """Wrap around the ZSS library for Zhang/Shasha"""
 import sys
-sys.path.append("zhang-shasha/zss")
-from simple_tree import *
-from compare import *
+sys.path.append("zhang-shasha")
+import zss
+from zss.simple_tree import *
+from zss.compare import *
 import numpy as np
 import matplotlib.pyplot as plt
 from MergeTree import *
@@ -34,7 +35,15 @@ def updateCost(ZSSA, ZSSB):
     cost = np.abs(A.getfVal() - B.getfVal())
     return cost
 
-def doZSSMap(TA, TB):
+def getZSSMap(TA, TB, computeMap = False):
+    '''Computes the CTOMT distance between trees TA and TB
+    :param TA: Tree A
+    :param TB: Tree B
+    :param computeMap: Boolean
+
+    :return: An integer distance [0, inf+) if the optimal map is not computed
+    or an object of type ChiralMap if the optimal map is also computed
+    '''
     subdivideTreesMutual(TA, TB)
     TA.sortChildrenTotalOrder()
     TB.sortChildrenTotalOrder()
@@ -43,14 +52,20 @@ def doZSSMap(TA, TB):
     TBZSS = convertToZSSTree(TB)
 
     #Call the ZSS library and my backtracing library
-    (KeyrootMaps, KeyrootPtrs, treedists) = distance(TAZSS, TBZSS, Node.get_children, insertRemoveCost, insertRemoveCost, updateCost)
+    ret = distance(TAZSS, TBZSS, Node.get_children, insertRemoveCost, insertRemoveCost, updateCost, returnMap)
+    if not computeMap:
+        #If only the cost was computed, return it
+        return ret
+
+    #If the user actually wants the map, a tuple was returned
+    (dist, KeyrootPtrs) = ret
     (Map, BsNotHit) = zssBacktrace(KeyrootPtrs)
 
     #Now copy over the returned map
     c = ChiralMap(TA, TB)
     c.TA = TA
     c.TB = TB
-    c.cost = treedists[-1, -1]
+    c.cost = dist
     c.mapsChecked = 'ZSS'
     c.BsNotHit = [N.label for N in BsNotHit]
     for AZSS in Map:

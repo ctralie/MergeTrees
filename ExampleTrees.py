@@ -1,7 +1,6 @@
 from MergeTree import *
 from BruteForceMap import *
 from ZSSMap import *
-from PolynomialFit import *
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -89,7 +88,6 @@ if __name__ == "__main__":
     X = TA.getCriticalPtsList()
     xl = np.min(X[:, 0])
     xr = np.max(X[:, 0])
-    polyFit(X, np.linspace(xl-0.2, xr+0.2, 100))
 
     #TA.addOffset(np.array([0, 0.3]))
     TB = getTreeB()
@@ -98,8 +96,8 @@ if __name__ == "__main__":
     debug = DebugOffsets(offsetA, offsetB)
 
     #C = doBruteForceMap(TA, TB)
-    C = doZSSMap(TA, TB)
-    print C.cost
+    C = getZSSMap(TA, TB, True)
+    print(C.cost)
 
 
     drawMap(C, offsetA, offsetB, drawSubdivided = True)
