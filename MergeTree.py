@@ -304,12 +304,14 @@ def wrapGDAMergeTreeTimeSeries(s, X):
     """
     s is a time series from the GDA library, X is an Nx2 numpy
     array of the corresponding coordinates
+    Return tuple (MergeTree, PersistenceDiagram)
     """
+    #First extract merge tree
     T = MergeTree(TotalOrder2DX)
     y = X[:, 1]
     MT = s.pers.mergetree
     if len(MT) == 0: #Boundary case
-        return T
+        return (T, np.zeros((1, 2)))
     nodes = {}
     #Construct all node objects
     root = None
@@ -325,4 +327,6 @@ def wrapGDAMergeTreeTimeSeries(s, X):
     for idx in MT:
         for cidx in MT[idx]:
             nodes[idx].addChild(nodes[cidx])
-    return T
+    #Now extract persistence diagram
+    PD = s.pers.diagram[['birth', 'death']].as_matrix()
+    return (T, PD)

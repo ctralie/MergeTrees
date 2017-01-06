@@ -1,5 +1,6 @@
 from MergeTree import *
 from ZSSMap import *
+from BottleneckWrapper import *
 import timeseries
 import time
 import matplotlib.pyplot as plt
@@ -21,7 +22,7 @@ def makeTimeSeriesGDA(x):
     s = timeseries.Signal(x)
     return (s, X)
 
-if __name__ == '__main__':
+def do4x4Tests():
     N = 100
     NPeriods = 5.7
     t1 = np.linspace(0, 1, N)
@@ -36,7 +37,7 @@ if __name__ == '__main__':
     TGUs = [] #Trending Gaussian Up
     TGDs = [] #Trending Gaussian Down
     for t in ts:
-        x = getTrendingLinear(t, 1, NPeriods/np.max(t))
+        x = getTrendingLinear(t, 1, 0.5*NPeriods/np.max(t))
         (s, X) = makeTimeSeriesGDA(x)
         TLUs.append((X, wrapGDAMergeTreeTimeSeries(s, X)))
         (s, X) = makeTimeSeriesGDA(x[::-1])
@@ -56,7 +57,7 @@ if __name__ == '__main__':
     #Plot the time series
     if doPlot:
         for i in range(N):
-            (X, T) = AllTs[i]
+            (X, (T, Dgm)) = AllTs[i]
             plt.clf()
             plt.plot(X[:, 0], X[:, 1])
             plt.hold(True)
@@ -66,15 +67,17 @@ if __name__ == '__main__':
     #Compute all pairwise distances (check that it's symmetric)
     DMergeTree = np.zeros((N, N))
     DEuclidean = np.zeros((N, N))
+    DBottleneck = np.zeros((N, N))
+    doBottleneck = True
     for i in range(N):
         print("%i of %i"%(i+1, N))
-        (XA, TA) = AllTs[i]
+        (XA, (TA, DgmA)) = AllTs[i]
         TAClone = TA.clone() #Clone so subdivided nodes don't accumulate
         tic = time.time()
         for j in range(N):
             if i == j:
                 continue
-            (XB, TB) = AllTs[j]
+            (XB, (TB, DgmB)) = AllTs[j]
             TBClone = TB.clone()
             DEuclidean[i, j] = np.sqrt(np.sum((XA[:, 1]-XB[:, 1])**2))
             C = getZSSMap(TAClone, TBClone, doPlot)
@@ -86,10 +89,29 @@ if __name__ == '__main__':
                 plt.savefig("Map%i_%i.svg"%(i, j))
             else:
                 DMergeTree[i, j] = C
+            if doBottleneck:
+                DBottleneck[i, j] = getBottleneckDist(DgmA, DgmB)
         print("Elapsed time: ", time.time() - tic)
-        sio.savemat("PairwiseDs.mat", {"DEuclidean":DEuclidean, "DMergeTree":DMergeTree})
+        sio.savemat("PairwiseDs.mat", {"DEuclidean":DEuclidean, "DMergeTree":DMergeTree, "DBottleneck":DBottleneck})
 
+def testBottleneck():
+    N = 100
+    NPeriods = 5.7
+    t = NPeriods*2*np.pi*np.linspace(0, 1, N)
+    x = getTrendingLinear(t, 1, 0.5*NPeriods/np.max(t))
+    y = x[::-1] + 0.2
+    (sx, X) = makeTimeSeriesGDA(x)
+    (TX, DgmX) = wrapGDAMergeTreeTimeSeries(sx, X)
+    (sy, Y) = makeTimeSeriesGDA(y)
+    (TY, DgmY) = wrapGDAMergeTreeTimeSeries(sy, Y)
+    dist = getBottleneckDist(DgmX, DgmY)
+    plot2DGMs(DgmX, DgmY, 'Trending Up', 'Trending Down')
+    plt.title("Bottleneck Distance = %g"%dist)
+    plt.show()
 
+if __name__ == '__main__':
+    do4x4Tests()
+    #testBottleneck()
 
 if __name__ == '__main__2':
     print("<table>")
