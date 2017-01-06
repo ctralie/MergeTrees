@@ -44,6 +44,8 @@ def getZSSMap(TA, TB, computeMap = False):
     :return: An integer distance [0, inf+) if the optimal map is not computed
     or an object of type ChiralMap if the optimal map is also computed
     '''
+
+    #Clone the trees so that the subdivision doesn't update the orignal tree
     subdivideTreesMutual(TA, TB)
     TA.sortChildrenTotalOrder()
     TA.updateNodesList()

@@ -50,6 +50,7 @@ if __name__ == '__main__':
 
     i = 0
     doPlot = False
+    drawSubdivided = False
     AllTs = TLUs + TLDs + TGUs + TGDs
     N = len(AllTs)
     #Plot the time series
@@ -68,18 +69,20 @@ if __name__ == '__main__':
     for i in range(N):
         print("%i of %i"%(i+1, N))
         (XA, TA) = AllTs[i]
+        TAClone = TA.clone() #Clone so subdivided nodes don't accumulate
         tic = time.time()
         for j in range(N):
             if i == j:
                 continue
             (XB, TB) = AllTs[j]
+            TBClone = TB.clone()
             DEuclidean[i, j] = np.sqrt(np.sum((XA[:, 1]-XB[:, 1])**2))
-            C = getZSSMap(TA, TB, doPlot)
+            C = getZSSMap(TAClone, TBClone, doPlot)
             if doPlot:
                 DMergeTree[i, j] = C.cost
                 offset = np.max(XB[:, 0]) - np.min(XA[:, 0]) + 5
                 plt.clf()
-                drawMap(C, np.array([0, 0]), np.array([offset, 0]), drawSubdivided = True)
+                drawMap(C, np.array([0, 0]), np.array([offset, 0]), drawSubdivided = False)
                 plt.savefig("Map%i_%i.svg"%(i, j))
             else:
                 DMergeTree[i, j] = C

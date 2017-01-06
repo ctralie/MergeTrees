@@ -143,6 +143,10 @@ class MergeNode(object):
         for C in arr:
             self.addChild(C)
 
+    def cloneValOnly(self):
+        ret = MergeNode(self.X)
+        return ret
+
     def __str__(self):
         return "Node: X = %s, Subdivided = %i"%(self.X, self.subdivided)
 
@@ -155,6 +159,18 @@ class MergeTree(object):
         self.orderFn = orderFn
         self.fVals = []
         self.nodesList = []
+
+    def clone(self):
+        T = MergeTree(self.orderFn)
+        T.root = self.root.cloneValOnly()
+        stack = [(self.root, T.root)]
+        while len(stack) > 0:
+            (node, newnode) = stack.pop()
+            for C in node.children:
+                newC = C.cloneValOnly()
+                newnode.addChild(newC)
+                stack.append((C, newC))
+        return T
 
     def addOffsetRec(self, node, offset):
         node.X += offset
@@ -279,6 +295,10 @@ class MergeTree(object):
         """
         hi = bisect_left(vals, self.root.getfVal())
         self.subdivideEdgesRec(self.root, vals, hi)
+
+    def clearSubdividedNodes(self):
+        """Remove all subdivided nodes"""
+        print("TODO")
 
 def wrapGDAMergeTreeTimeSeries(s, X):
     """
