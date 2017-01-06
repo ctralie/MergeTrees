@@ -276,3 +276,30 @@ class MergeTree(object):
         """
         hi = bisect_left(vals, self.root.getfVal())
         self.subdivideEdgesRec(self.root, vals, hi)
+
+def wrapGDAMergeTreeTimeSeries(s, X):
+    """
+    s is a time series from the GDA library, X is an Nx2 numpy
+    array of the corresponding coordinates
+    """
+    T = MergeTree(TotalOrder2DX)
+    y = X[:, 1]
+    MT = s.pers.mergetree
+    if len(MT) == 0: #Boundary case
+        return T
+    nodes = {}
+    #Construct all node objects
+    root = None
+    maxVal = -np.inf
+    for idx0 in MT:
+        for idx in [idx0] + list(MT[idx0]):
+            nodes[idx] = MergeNode(X[idx, :])
+            if y[idx] > maxVal:
+                root = nodes[idx]
+                maxVal = y[idx]
+    T.root = root
+    #Create all branches
+    for idx in MT:
+        for cidx in MT[idx]:
+            nodes[idx].addChild(nodes[cidx])
+    return T
