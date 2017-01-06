@@ -3,6 +3,7 @@ from ZSSMap import *
 import timeseries
 import time
 import matplotlib.pyplot as plt
+import scipy.io as sio
 
 def getTrendingLinear(t, a, b):
     x = a*np.cos(t) + b*t
@@ -22,7 +23,7 @@ def makeTimeSeriesGDA(x):
 
 if __name__ == '__main__':
     N = 100
-    NPeriods = 5.5
+    NPeriods = 5.7
     t1 = np.linspace(0, 1, N)
     t2 = t1**2
     t3 = np.sqrt(t1)
@@ -37,12 +38,63 @@ if __name__ == '__main__':
     for t in ts:
         x = getTrendingLinear(t, 1, NPeriods/np.max(t))
         (s, X) = makeTimeSeriesGDA(x)
-        TLUs.append(wrapGDAMergeTreeTimeSeries(s, X))
+        TLUs.append((X, wrapGDAMergeTreeTimeSeries(s, X)))
         (s, X) = makeTimeSeriesGDA(x[::-1])
-        TLDs.append(wrapGDAMergeTreeTimeSeries(s, X))
+        TLDs.append((X, wrapGDAMergeTreeTimeSeries(s, X)))
         c = np.max(x)/2
         y = getTrendingGaussian(t, c, np.max(t)/2, c)
         (s, X) = makeTimeSeriesGDA(y)
-        TGDs.append(wrapGDAMergeTreeTimeSeries(s, X))
+        TGDs.append((X, wrapGDAMergeTreeTimeSeries(s, X)))
         (s, X) = makeTimeSeriesGDA(y[::-1])
-        TGUs.append(wrapGDAMergeTreeTimeSeries(s, X))
+        TGUs.append((X, wrapGDAMergeTreeTimeSeries(s, X)))
+
+    i = 0
+    doPlot = False
+    AllTs = TLUs + TLDs + TGUs + TGDs
+    N = len(AllTs)
+    #Plot the time series
+    if doPlot:
+        for i in range(N):
+            (X, T) = AllTs[i]
+            plt.clf()
+            plt.plot(X[:, 0], X[:, 1])
+            plt.hold(True)
+            T.render(np.array([0, 0]))
+            plt.savefig("%i.svg"%i)
+
+    #Compute all pairwise distances (check that it's symmetric)
+    DMergeTree = np.zeros((N, N))
+    DEuclidean = np.zeros((N, N))
+    for i in range(N):
+        print("%i of %i"%(i+1, N))
+        (XA, TA) = AllTs[i]
+        tic = time.time()
+        for j in range(N):
+            if i == j:
+                continue
+            (XB, TB) = AllTs[j]
+            DEuclidean[i, j] = np.sqrt(np.sum((XA[:, 1]-XB[:, 1])**2))
+            C = getZSSMap(TA, TB, doPlot)
+            if doPlot:
+                DMergeTree[i, j] = C.cost
+                offset = np.max(XB[:, 0]) - np.min(XA[:, 0]) + 5
+                plt.clf()
+                drawMap(C, np.array([0, 0]), np.array([offset, 0]), drawSubdivided = True)
+                plt.savefig("Map%i_%i.svg"%(i, j))
+            else:
+                DMergeTree[i, j] = C
+        print("Elapsed time: ", time.time() - tic)
+        sio.savemat("PairwiseDs.mat", {"DEuclidean":DEuclidean, "DMergeTree":DMergeTree})
+
+
+
+if __name__ == '__main__2':
+    print("<table>")
+    c = 0
+    for i in range(4):
+        print("<tr>")
+        for j in range(4):
+            print("<td><img src = \"MergeTreesSVG/%i.svg\"></td>"%c)
+            c += 1
+        print("</tr>")
+    print("</table>")

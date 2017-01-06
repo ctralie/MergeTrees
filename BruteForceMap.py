@@ -35,7 +35,7 @@ def doBruteForceMapRec(TA, TB, Map, ia, BMapped, C, cost, debug = None):
         if cost < C.cost:
             #This is the best found map so far, so update the cost
             #and copy it over
-            print "Best map so far found cost %g"%cost
+            print("Best map so far found cost %g"%cost)
             C.cost = cost
             C.BsNotHit = BsNotHit
             for A in Map:

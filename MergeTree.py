@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from bisect import bisect_left
+from functools import cmp_to_key
 
 ##########################################################
 #              Partial Order Functions                   #
@@ -129,6 +130,7 @@ class MergeNode(object):
         self.children = []
         self.X = np.array(X, dtype=np.float64)
         self.subdivided = subdivided
+        self.idx = -1
 
     def getfVal(self):
         return self.X[-1]
@@ -181,7 +183,7 @@ class MergeTree(object):
         self.renderRec(self.root, offset, drawSubdivided, pointSize)
 
     def sortChildrenTotalOrderRec(self, N):
-        N.children = sorted(N.children, cmp=self.orderFn)
+        N.children = sorted(N.children, key=cmp_to_key(self.orderFn))
         for C in N.children:
             self.sortChildrenTotalOrderRec(C)
 
@@ -207,6 +209,7 @@ class MergeTree(object):
         return self.fVals
 
     def updateNodesListRec(self, N):
+        N.idx = len(self.nodesList)
         self.nodesList.append(N)
         for C in N.children:
             self.updateNodesListRec(C)

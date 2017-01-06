@@ -46,13 +46,15 @@ def getZSSMap(TA, TB, computeMap = False):
     '''
     subdivideTreesMutual(TA, TB)
     TA.sortChildrenTotalOrder()
+    TA.updateNodesList()
     TB.sortChildrenTotalOrder()
+    TB.updateNodesList()
 
     TAZSS = convertToZSSTree(TA)
     TBZSS = convertToZSSTree(TB)
 
     #Call the ZSS library and my backtracing library
-    ret = distance(TAZSS, TBZSS, Node.get_children, insertRemoveCost, insertRemoveCost, updateCost, returnMap)
+    ret = distance(TAZSS, TBZSS, Node.get_children, insertRemoveCost, insertRemoveCost, updateCost, computeMap)
     if not computeMap:
         #If only the cost was computed, return it
         return ret
