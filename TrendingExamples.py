@@ -36,21 +36,25 @@ def do4x4Tests():
     TLDs = [] #Trending Linear Down
     TGUs = [] #Trending Gaussian Up
     TGDs = [] #Trending Gaussian Down
+    i = 0
     for t in ts:
         x = getTrendingLinear(t, 1, 0.5*NPeriods/np.max(t))
+        sio.savemat("TLU%i.mat"%i, {"x":x})
         (s, X) = makeTimeSeriesGDA(x)
         TLUs.append((X, wrapGDAMergeTreeTimeSeries(s, X)))
         (s, X) = makeTimeSeriesGDA(x[::-1])
         TLDs.append((X, wrapGDAMergeTreeTimeSeries(s, X)))
         c = np.max(x)/2
         y = getTrendingGaussian(t, c, np.max(t)/2, c)
+        sio.savemat("TGD%i.mat"%i, {"x":y})
         (s, X) = makeTimeSeriesGDA(y)
         TGDs.append((X, wrapGDAMergeTreeTimeSeries(s, X)))
         (s, X) = makeTimeSeriesGDA(y[::-1])
         TGUs.append((X, wrapGDAMergeTreeTimeSeries(s, X)))
+        i += 1
 
     i = 0
-    doPlot = True
+    doPlot = False
     drawSubdivided = False
     AllTs = TLUs + TLDs + TGUs + TGDs
     N = len(AllTs)
@@ -68,7 +72,7 @@ def do4x4Tests():
     DMergeTree = np.zeros((N, N))
     DEuclidean = np.zeros((N, N))
     DBottleneck = np.zeros((N, N))
-    doBottleneck = False
+    doBottleneck = True
     for i in range(N):
         print("%i of %i"%(i+1, N))
         (XA, (TA, DgmA)) = AllTs[i]
@@ -94,6 +98,45 @@ def do4x4Tests():
         print("Elapsed time: ", time.time() - tic)
         sio.savemat("PairwiseDs.mat", {"DEuclidean":DEuclidean, "DMergeTree":DMergeTree, "DBottleneck":DBottleneck})
 
+def doStabilityTest():
+    mag = 0.1
+    N = 100
+    t = np.linspace(0, 4*np.pi, N) - np.pi/2
+    y = np.sin(t)
+    ss = 2*np.pi - np.pi/2
+    sc = 3*np.pi - np.pi/2
+    n = len(t[t>ss])
+
+    y1 = np.array(y)
+    y1[t>ss] = mag*np.sin(np.linspace(0, np.pi, n)) + y[t>ss]
+    (s1, X1) = makeTimeSeriesGDA(y1)
+    X1[:, 0] = t
+    (T1, Dgm1) = wrapGDAMergeTreeTimeSeries(s1, X1)
+
+    y2 = np.array(y)
+    y2[t>ss] = -mag*np.sin(np.linspace(0, np.pi, n)) + y[t>ss]
+    (s2, X2) = makeTimeSeriesGDA(y2)
+    X2[:, 0] = t
+    (T2, Dgm2) = wrapGDAMergeTreeTimeSeries(s2, X2)
+
+    plt.subplot(121)
+    plt.plot(t, y1)
+    plt.hold(True)
+    T1.render(np.array([0, 0]))
+    plt.ylim([-1-2*mag, 1+3*mag])
+    plt.subplot(122)
+    plt.plot(t, y2)
+    plt.hold(True)
+    T2.render(np.array([0, 0]))
+    plt.ylim([-1-2*mag, 1+3*mag])
+    plt.show()
+
+    C = getZSSMap(T1, T2, True)
+    offset = np.max(X2[:, 0]) - np.min(X2[:, 0]) + 5
+    plt.clf()
+    drawMap(C, np.array([0, 0]), np.array([offset, 0]), drawSubdivided = False)
+    plt.show()
+
 def testBottleneck():
     N = 100
     NPeriods = 5.7
@@ -112,6 +155,7 @@ def testBottleneck():
 if __name__ == '__main__':
     do4x4Tests()
     #testBottleneck()
+    #doStabilityTest()
 
 if __name__ == '__main__2':
     print("<table>")
