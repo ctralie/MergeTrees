@@ -56,10 +56,10 @@ def subdivideTreesMutual(TA, TB):
     valsA = TA.getfValsSorted()
     valsB = TB.getfValsSorted()
     #Subdivide both edges to make sure internal nodes get matched to internal nodes by horizontal lines
-    vals = np.array(valsA.tolist() + valsB.tolist())
-    vals = np.sort(np.unique(vals))
-    TB.subdivideFromValues(vals)
-    TA.subdivideFromValues(vals)
+    #vals = np.array(valsA.tolist() + valsB.tolist())
+    #vals = np.sort(np.unique(vals))
+    TB.subdivideFromValues(valsA)
+    TA.subdivideFromValues(valsB)
     TA.updateNodesList()
     TB.updateNodesList()
 
