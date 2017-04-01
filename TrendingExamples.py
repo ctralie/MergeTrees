@@ -50,7 +50,7 @@ def do4x4Tests():
         TGUs.append((X, wrapGDAMergeTreeTimeSeries(s, X)))
 
     i = 0
-    doPlot = False
+    doPlot = True
     drawSubdivided = False
     AllTs = TLUs + TLDs + TGUs + TGDs
     N = len(AllTs)
@@ -68,7 +68,7 @@ def do4x4Tests():
     DMergeTree = np.zeros((N, N))
     DEuclidean = np.zeros((N, N))
     DBottleneck = np.zeros((N, N))
-    doBottleneck = True
+    doBottleneck = False
     for i in range(N):
         print("%i of %i"%(i+1, N))
         (XA, (TA, DgmA)) = AllTs[i]
