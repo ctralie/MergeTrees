@@ -7,11 +7,11 @@ import matplotlib.pyplot as plt
 def getTreeA():
     T = MergeTree(TotalOrder2DX)
     T.root = MergeNode(np.array([0, 5]))
-    B = MergeNode(np.array([-3, 0]))
-    C = MergeNode(np.array([1, 4]))
+    B = MergeNode(np.array([-6, 0]))
+    C = MergeNode(np.array([2, 4.7]))
     T.root.addChildren([B, C])
-    D = MergeNode(np.array([0.5, 3.5]))
-    E = MergeNode(np.array([2, 2]))
+    D = MergeNode(np.array([1, 3.5]))
+    E = MergeNode(np.array([8, 2]))
     C.addChildren([D, E])
     return T
 
@@ -20,7 +20,7 @@ def getTreeAA():
     T.root = MergeNode(np.array([0, 8]))
     A = MergeNode(np.array([0, 5]))
     T.root.addChild(A)
-    B = MergeNode(np.array([-3, 4]))
+    B = MergeNode(np.array([-2, 4]))
     C = MergeNode(np.array([1, 4]))
     A.addChildren([B, C])
     return T
@@ -28,10 +28,10 @@ def getTreeAA():
 def getTreeB():
     T = MergeTree(TotalOrder2DX)
     T.root = MergeNode(np.array([0, 5]))
-    B = MergeNode(np.array([-1, 4]))
-    C = MergeNode(np.array([2, 2]))
+    B = MergeNode(np.array([-4, 4.7]))
+    C = MergeNode(np.array([8, 2]))
     T.root.addChildren([B, C])
-    D = MergeNode(np.array([-2, 0]))
+    D = MergeNode(np.array([-10, 0]))
     E = MergeNode(np.array([-0.5, 3.5]))
     B.addChildren([D, E])
     return T
@@ -83,16 +83,35 @@ def getTreeF():
     A.addChildren([C, D])
     return T
 
+def getPaul1():
+    T = MergeTree(TotalOrder2DX)
+    T.root = MergeNode(np.array([3, 10]))
+    A = MergeNode(np.array([-5, 0]))
+    B = MergeNode(np.array([4, 3]))
+    T.root.addChildren([A, B])
+    return T
+
+def getPaul2():
+    T = MergeTree(TotalOrder2DX)
+    T.root = MergeNode(np.array([7, 10]))
+    A = MergeNode(np.array([6, 3]))
+    B = MergeNode(np.array([15, 4]))
+    T.root.addChildren([A, B])
+    return T
+
+
 if __name__ == "__main__":
     TA = getTreeA()
+    #TA = getPaul1()
     X = TA.getCriticalPtsList()
     xl = np.min(X[:, 0])
     xr = np.max(X[:, 0])
 
     #TA.addOffset(np.array([0, 0.3]))
     TB = getTreeB()
+    #TB = getPaul2()
     offsetA = np.array([0, 0])
-    offsetB = np.array([6, 0])
+    offsetB = np.array([28, 0])
     debug = DebugOffsets(offsetA, offsetB)
 
     #C = doBruteForceMap(TA, TB)

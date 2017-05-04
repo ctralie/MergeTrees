@@ -152,7 +152,8 @@ class MergeNode(object):
 
 class MergeTree(object):
     """
-    Holds nodes starting at root, and a table of partial order info (-1 for less than, 1 for greater than, 0 for undefined)
+    Holds nodes starting at root, and a table of partial order info (
+    -1 for less than, 1 for greater than, 0 for undefined)
     """
     def __init__(self, orderFn):
         self.root = None
@@ -185,9 +186,9 @@ class MergeTree(object):
         if node.subdivided:
             #Render new nodes blue
             if drawSubdivided:
-                plt.scatter(X[0], X[1], pointSize, 'b')
+                plt.scatter(X[0], X[1], pointSize, 'r')
         else:
-            plt.scatter(X[0], X[1], pointSize, 'r')
+            plt.scatter(X[0], X[1], pointSize, 'k')
         if node.parent:
             Y = node.parent.X + offset
             plt.plot([X[0], Y[0]], [X[1], Y[1]], 'k')
@@ -330,3 +331,80 @@ def wrapGDAMergeTreeTimeSeries(s, X):
     #Now extract persistence diagram
     PD = s.pers.diagram[['birth', 'death']].as_matrix()
     return (T, PD)
+
+def UFFind(UFP, u):
+    """
+    Union find "find" with path-compression
+    :param UFP: A list of pointers to reprsentative nodes
+    :param u: Index of the node to find
+    :return: Index of the representative of the component of u
+    """
+    if not (UFP[u] == u):
+        UFP[u] = UFFind(UFP, UFP[u])
+        return UFP[u]
+    else:
+        return u
+
+def UFUnion(UFP, u, v, idxorder):
+    """
+    Union find "union" with early birth-based merging
+    (similar to rank-based merging...not sure if exactly the
+    same theoretical running time)
+    """
+    u = UFFind(UFP, u)
+    v = UFFind(UFP, v)
+    if u == v:
+        return #Already in union
+    [ufirst, usecond] = [u, v]
+    if idxorder[v] < idxorder[u]:
+        [ufirst, usecond] = [v, u]
+    UFP[usecond] = ufirst
+
+def mergeTreeFrom1DTimeSeries(x):
+    """
+    Uses union find to make a merge tree object from the time series x
+    (NOTE: This code is pretty general and could work to create merge trees
+    on any domain if the neighbor set was updated)
+    :param x: 1D array representing the time series
+    :return: (Merge Tree dictionary, Persistence diagram)
+    """
+    #Add points from the bottom up
+    N = len(x)
+    idx = np.argsort(x)
+    idxorder = np.zeros(N)
+    idxorder[idx] = np.arange(N)
+    UFP = np.arange(N) #Pointer to oldest indices
+    UFR = np.arange(N) #Representatives of classes
+    I = [] #Persistence diagram
+    MT = {} #Merge tree
+    for i in idx:
+        neighbs = set([])
+        #Find the oldest representatives of the neighbors that
+        #are already alive
+        for di in [-1, 1]: #Neighbor set is simply left/right
+            if i+di >= 0 and i+di < N:
+                if idxorder[i+di] < idxorder[i]:
+                    neighbs.add(UFFind(UFP, i+di))
+        #If none of this point's neighbors are alive yet, this
+        #point will become alive with its own class
+        if len(neighbs) == 0:
+            continue
+        neighbs = [n for n in neighbs]
+        #Find the oldest class, merge earlier classes with this class,
+        #and record the merge events and birth/death times
+        oldestNeighb = neighbs[np.argmin([idxorder[n] for n in neighbs])]
+        if len(neighbs) > 1: #A nontrivial merge
+            MT[i] = [UFR[n] for n in neighbs] #Add merge tree children
+            for n in neighbs:
+                if not (n == oldestNeighb):
+                    #Record persistence event
+                    I.append([x[n], x[i]])
+                UFUnion(UFP, oldestNeighb, n, idxorder)
+            #Change the representative for this class to be the
+            #saddle point
+            UFR[oldestNeighb] = i
+        #No matter, what, the current node becomes part of the
+        #oldest class to which it is connected
+        UFUnion(UFP, oldestNeighb, i, idxorder)
+    I = np.array(I)
+    return (MT, I)
