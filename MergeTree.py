@@ -301,7 +301,7 @@ class MergeTree(object):
         """Remove all subdivided nodes"""
         print("TODO")
 
-def wrapGDAMergeTreeTimeSeries(s, X):
+def wrapMergeTreeTimeSeries(MT, X):
     """
     s is a time series from the GDA library, X is an Nx2 numpy
     array of the corresponding coordinates
@@ -310,7 +310,6 @@ def wrapGDAMergeTreeTimeSeries(s, X):
     #First extract merge tree
     T = MergeTree(TotalOrder2DX)
     y = X[:, 1]
-    MT = s.pers.mergetree
     if len(MT) == 0: #Boundary case
         return (T, np.zeros((1, 2)))
     nodes = {}
@@ -328,9 +327,7 @@ def wrapGDAMergeTreeTimeSeries(s, X):
     for idx in MT:
         for cidx in MT[idx]:
             nodes[idx].addChild(nodes[cidx])
-    #Now extract persistence diagram
-    PD = s.pers.diagram[['birth', 'death']].as_matrix()
-    return (T, PD)
+    return T
 
 def UFFind(UFP, u):
     """
