@@ -70,12 +70,13 @@ def do4x4Tests(doPlot = False, drawSubdivided = False):
     for i in range(N):
         print("%i of %i"%(i+1, N))
         (XA, TA, DgmA) = AllTs[i]
-        TAClone = TA.clone() #Clone so subdivided nodes don't accumulate
         tic = time.time()
         for j in range(N):
             if i == j:
                 continue
             (XB, TB, DgmB) = AllTs[j]
+            #Clone so subdivided nodes don't accumulate
+            TAClone = TA.clone()
             TBClone = TB.clone()
             DEuclidean[i, j] = np.sqrt(np.sum((XA[:, 1]-XB[:, 1])**2))
             C = getZSSMap(TAClone, TBClone, doPlot)
