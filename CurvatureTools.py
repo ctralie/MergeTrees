@@ -8,8 +8,7 @@ import scipy.misc
 import matplotlib.animation as animation
 
 #Get smoothed curvature vectors up to a particular order
-def getCurvVectors(X, MaxOrder, sigma, loop = False):
-    m = 'nearest'
+def getCurvVectors(X, MaxOrder, sigma, loop = False, m = 'nearest'):
     if loop:
         m = 'wrap'
     XSmooth = gf1d(X, sigma, axis=0, order = 0, mode = m)

@@ -403,5 +403,7 @@ def mergeTreeFrom1DTimeSeries(x):
         #No matter, what, the current node becomes part of the
         #oldest class to which it is connected
         UFUnion(UFP, oldestNeighb, i, idxorder)
+    #Add the essential class
+    I.append([np.min(x), np.max(x)])
     I = np.array(I)
     return (MT, I)

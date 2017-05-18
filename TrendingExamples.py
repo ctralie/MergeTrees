@@ -1,6 +1,6 @@
 from MergeTree import *
 from ZSSMap import *
-from BottleneckWrapper import *
+from DGMTools import *
 import time
 import matplotlib.pyplot as plt
 import scipy.io as sio
@@ -65,12 +65,13 @@ def do4x4Tests(doPlot = False, drawSubdivided = False):
     #Compute all pairwise distances (check that it's symmetric)
     DMergeTree = np.zeros((N, N))
     DEuclidean = np.zeros((N, N))
-    DBottleneck = np.zeros((N, N))
-    doBottleneck = True
+    DWasserstein = np.zeros((N, N))
+    doWasserstein = True
     for i in range(N):
         print("%i of %i"%(i+1, N))
         (XA, TA, DgmA) = AllTs[i]
-        tic = time.time()
+        MTTime = 0.0
+        WSTime = 0.0
         for j in range(N):
             if i == j:
                 continue
@@ -79,7 +80,10 @@ def do4x4Tests(doPlot = False, drawSubdivided = False):
             TAClone = TA.clone()
             TBClone = TB.clone()
             DEuclidean[i, j] = np.sqrt(np.sum((XA[:, 1]-XB[:, 1])**2))
+            tic = time.time()
             C = getZSSMap(TAClone, TBClone, doPlot)
+            toc = time.time()
+            MTTime += toc - tic
             if doPlot:
                 DMergeTree[i, j] = C.cost
                 offset = np.max(XB[:, 0]) - np.min(XA[:, 0]) + 5
@@ -88,10 +92,14 @@ def do4x4Tests(doPlot = False, drawSubdivided = False):
                 plt.savefig("Map%i_%i.svg"%(i, j))
             else:
                 DMergeTree[i, j] = C
-            if doBottleneck:
-                DBottleneck[i, j] = getBottleneckDist(DgmA, DgmB)
-        print("Elapsed time: ", time.time() - tic)
-        sio.savemat("PairwiseDs.mat", {"DEuclidean":DEuclidean, "DMergeTree":DMergeTree, "DBottleneck":DBottleneck})
+            if doWasserstein:
+                tic = time.time()
+                DWasserstein[i, j] = getWassersteinDist(DgmA, DgmB)
+                toc = time.time()
+                WSTime += toc-tic
+        print "Elapsed Time Merge Tree: ", MTTime
+        print "Elapsed Time Wasserstein: ", WSTime
+        sio.savemat("PairwiseDs.mat", {"DEuclidean":DEuclidean, "DMergeTree":DMergeTree, "DWasserstein":DWasserstein})
 
 def doStabilityTest():
     mag = 0.1
@@ -129,7 +137,7 @@ def doStabilityTest():
     drawMap(C, np.array([0, 0]), np.array([offset, 0]), drawSubdivided = True)
     plt.show()
 
-def testBottleneck():
+def testWasserstein():
     N = 100
     NPeriods = 5.7
     t = NPeriods*2*np.pi*np.linspace(0, 1, N)
@@ -137,14 +145,14 @@ def testBottleneck():
     y = x[::-1] + 0.2
     (X, TX, DgmX) = setupTimeSeries(x)
     (Y, TY, DgmY) = setupTimeSeries(y)
-    dist = getBottleneckDist(DgmX, DgmY)
+    dist = getWassersteinDist(DgmX, DgmY)
     plot2DGMs(DgmX, DgmY, 'Trending Up', 'Trending Down')
-    plt.title("Bottleneck Distance = %g"%dist)
+    plt.title("Wasserstein Distance = %g"%dist)
     plt.show()
 
 if __name__ == '__main__':
     do4x4Tests()
-    #testBottleneck()
+    #testWasserstein()
     #doStabilityTest()
 
 if __name__ == '__main__2':
