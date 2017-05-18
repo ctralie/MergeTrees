@@ -16,6 +16,29 @@ import sklearn.metrics.pairwise
 ##########                  Plotting Functions                      ##########    
 ##############################################################################
 
+def plotDGM(dgm, color = 'b', sz = 20, label = 'dgm', axcolor = np.array([0.0, 0.0, 0.0]), marker = None):
+    if dgm.size == 0:
+        return
+    # Create Lists
+    # set axis values
+    axMin = np.min(dgm)
+    axMax = np.max(dgm)
+    axRange = axMax-axMin
+    a = axMin - axRange/5
+    b = axMax+axRange/5
+    # plot line
+    plt.plot([a, b], [a, b], c = axcolor, label = 'none')
+    plt.hold(True)
+    # plot points
+    if marker:
+        H = plt.scatter(dgm[:, 0], dgm[:, 1], sz, color, marker, label=label, edgecolor = 'none')
+    else:
+        H = plt.scatter(dgm[:, 0], dgm[:, 1], sz, color, label=label, edgecolor = 'none')
+    # add labels
+    plt.xlabel('Time of Birth')
+    plt.ylabel('Time of Death')
+    return H
+
 def plotWassersteinMatching(I1, I2, matchidx):
     plotDGM(I1, 'b')
     plt.hold(True)

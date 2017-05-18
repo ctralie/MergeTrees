@@ -1,7 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 from bisect import bisect_left
 from functools import cmp_to_key
+from PolynomialFit import *
 
 ##########################################################
 #              Partial Order Functions                   #
@@ -181,7 +183,7 @@ class MergeTree(object):
     def addOffset(self, offset):
         self.addOffsetRec(self.root, offset)
 
-    def renderRec(self, node, offset, drawSubdivided = True, pointSize = 200):
+    def renderRec(self, node, offset, drawSubdivided = True, drawCurved = True, lineWidth = 3, pointSize = 200):
         X = node.X + offset
         if node.subdivided:
             #Render new nodes blue
@@ -191,13 +193,23 @@ class MergeTree(object):
             plt.scatter(X[0], X[1], pointSize, 'k')
         if node.parent:
             Y = node.parent.X + offset
-            plt.plot([X[0], Y[0]], [X[1], Y[1]], 'k')
+            if drawCurved:
+                #Draw edge arc
+                [x1, y1, x3, y3] = [X[0], X[1], Y[0], Y[1]]
+                x2 = 0.5*x1 + 0.5*x3
+                y2 = 0.25*y1 + 0.75*y3
+                xs = np.linspace(x1, x3, 50)
+                X = np.array([[x1, y1], [x2, y2], [x3, y3]])
+                Y = polyFit(X, xs, doPlot = False)
+                plt.plot(Y[:, 0], Y[:, 1], 'k', linewidth = lineWidth)
+            else:
+                plt.plot([X[0], Y[0]], [X[1], Y[1]], 'k', lineWidth = lineWidth)
         for C in node.children:
             self.renderRec(C, offset, drawSubdivided, pointSize)
 
-    def render(self, offset, drawSubdivided = True, pointSize = 200):
+    def render(self, offset, drawSubdivided = True, drawCurved = True, lineWidth = 3, pointSize = 200, ):
         plt.hold(True)
-        self.renderRec(self.root, offset, drawSubdivided, pointSize)
+        self.renderRec(self.root, offset, drawSubdivided, drawCurved, lineWidth, pointSize)
 
     def sortChildrenTotalOrderRec(self, N):
         N.children = sorted(N.children, key=cmp_to_key(self.orderFn))
