@@ -16,6 +16,7 @@ def drawLineColored(idx, x, C):
 def plotCurvature(x, v, c, C, Colors, MT, DGM, plotArrows = False):
     plt.subplot(131)
     plt.scatter(x[:, 0], x[:, 1], 20, c=Colors, cmap = 'Spectral', edgecolor = 'none')
+    plt.title("Parameterized Curve")
     #Plot velocity points
     plt.hold(True)
     ax = plt.gca()
@@ -36,15 +37,19 @@ def plotCurvature(x, v, c, C, Colors, MT, DGM, plotArrows = False):
     plt.scatter(np.arange(len(C)), C, 20, c=Colors, edgecolor = 'none')
     plt.hold(True)
     drawLineColored(np.arange(len(C)), C, Colors)
-    MT.render(np.array([0, 0]), pointSize=20)
     plt.plot([0, len(C)], [0, 0], 'k', linestyle='--')
-    plt.ylim([-0.5, 0.5])
+    MT.render(np.array([0, 0]), pointSize=60, lineWidth=2)
+    plt.ylim([-0.2, 0.5])
     plt.xlim([0, len(C)])
+    plt.xlabel("Time Index")
+    plt.ylabel("Smoothed Curvature")
+    plt.title("Curvature Estimate")
     plt.subplot(133)
     plotDGM(DGM)
     plt.plot([-0.5, 0.5], [-0.5, 0.5], 'k')
     plt.xlim([-0.5, 0.5])
     plt.ylim([-0.5, 0.5])
+    plt.title("Persistence Diagram")
 
 def getCurvatureMergeTrees(dirName, NClasses, NPerClass, sigma, doPlot = True):
     sigma = 10
