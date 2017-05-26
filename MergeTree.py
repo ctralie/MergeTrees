@@ -78,14 +78,14 @@ class ChiralMap(object):
         self.mapsChecked = 0
         self.BsNotHit = []
 
-def drawMap(ChiralMap, offsetA, offsetB, yres = 0.5, drawSubdivided = True):
+def drawMap(ChiralMap, offsetA, offsetB, yres = 0.5, drawSubdivided = True, drawCurved = True):
     (TA, TB) = (ChiralMap.TA, ChiralMap.TB)
     plt.clf()
     plt.hold(True)
     #First draw the two trees
     ax = plt.subplot(111)
-    TA.render(offsetA, drawSubdivided = drawSubdivided)
-    TB.render(offsetB, drawSubdivided = drawSubdivided)
+    TA.render(offsetA, drawCurved = drawCurved, drawSubdivided = drawSubdivided)
+    TB.render(offsetB, drawCurved = drawCurved, drawSubdivided = drawSubdivided)
     #Put y ticks at every unique y value
     yvals = TA.getfValsSorted().tolist() + TB.getfValsSorted().tolist()
     yvals = np.sort(np.unique(np.array(yvals)))
@@ -205,7 +205,7 @@ class MergeTree(object):
             else:
                 plt.plot([X[0], Y[0]], [X[1], Y[1]], 'k', lineWidth = lineWidth)
         for C in node.children:
-            self.renderRec(C, offset, drawSubdivided, pointSize)
+            self.renderRec(C, offset, drawSubdivided, drawCurved, lineWidth, pointSize)
 
     def render(self, offset, drawSubdivided = True, drawCurved = True, lineWidth = 3, pointSize = 200, ):
         plt.hold(True)
@@ -323,7 +323,7 @@ def wrapMergeTreeTimeSeries(MT, X):
     T = MergeTree(TotalOrder2DX)
     y = X[:, 1]
     if len(MT) == 0: #Boundary case
-        return (T, np.zeros((1, 2)))
+        return T
     nodes = {}
     #Construct all node objects
     root = None

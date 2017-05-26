@@ -5,6 +5,8 @@ import glob
 from CurvatureTools import *
 from BottleneckWrapper import *
 from TrendingExamples import *
+from CoverTree import *
+import subprocess
 
 def drawLineColored(idx, x, C):
     plt.hold(True)
@@ -101,6 +103,87 @@ def getCurvatureMergeTrees(dirName, NClasses, NPerClass, sigma, doPlot = True):
         print "Elapsed Time: ", toc-tic
         sio.savemat("DCurvatures.mat", {"DMergeTree":DMergeTree, "DWasserstein":DWasserstein, "DBottleneck":DBottleneck})
 
+def plotCurve(x):
+    cmap = plt.get_cmap('Spectral')
+    Colors = cmap(np.array(np.round(np.linspace(0, 255, x.shape[0])), dtype=np.int32))
+    Colors = Colors[:, 0:3]
+    plt.scatter(x[:, 0], x[:, 1], 20, c=Colors, cmap = 'Spectral', edgecolor = 'none')
+
+def plotHammerCoverTree():
+    #First figure out plotting range over all hammers
+    res = 0
+    for i in range(1, 21):
+        filename = "hmm_gpd/bicego_data/Class7_Sample%i.mat"%i
+        x = sio.loadmat(filename)['x']
+        x = x - np.minimum(x, 1)[None, :]
+        res = max(res, np.max(x))
+    print "res = ", res
+
+    from ete3 import Tree, TreeStyle, Tree, ImgFace, TextFace, add_face_to_node
+    D = sio.loadmat("DCurvatures.mat")
+    DMergeTree = D['DMergeTree']
+    DWass = D['DWasserstein']
+    DMergeTree = DMergeTree[-20::, -20::]
+    DWass = DWass[-20::, -20::]
+
+
+    TCMT = CoverTree()
+    seedidx = np.argmin(np.sum(DMergeTree, 1))
+    TCMT.construct(DMergeTree, seedidx)
+    TB = CoverTree()
+    seedidx = np.argmin(np.sum(DWass, 1))
+    TB.construct(DWass, seedidx)
+
+    t = TCMT.getETETree(names = [i+1 for i in range(20)])
+    #t = TB.getETETree(names = [i+1 for i in range(20)])
+    ts = TreeStyle()
+    ts.show_leaf_name = False
+    ts.show_branch_length = False
+    #ts.mode = "c"
+    ts.scale = 200
+    plt.figure(figsize=(5, 5))
+    def pictureLayout(node):
+        #http://etetoolkit.org/docs/latest/tutorial/tutorial_drawing.html
+        if not type(node.name) == int:
+            return
+        filename = "hmm_gpd/bicego_data/Class7_Sample%s.mat"%node.name
+        x = sio.loadmat(filename)['x']
+        print x.shape
+        #x = x - np.minimum(x, 1)[None, :]
+        plt.clf()
+        plotCurve(x)
+        plt.xlim([-20, 150])
+        plt.ylim([-20, 150])
+        #plt.axis('equal')
+        plt.axis('off')
+        #plt.xlim([0, res])
+        #plt.ylim([0, res])
+        imname = "Hammer%s.png"%node.name
+        plt.savefig(imname, bbox_inches = 'tight')
+        #convert Hammer1.png -background none -transparent white -flatten out.png
+        #subprocess.call(["convert", imname, "-background", "none", "-transparent", "white", "-flatten", imname])
+        subprocess.call(["mogrify", "-resize", "100x100", imname])
+        subprocess.call(["mogrify", "-trim", imname])
+
+        F = ImgFace(imname)
+        add_face_to_node(F, node, column=0, position="branch-right")
+
+        F = TextFace(node.name, tight_text = True)
+        add_face_to_node(F, node, column=0, position="branch-top")
+
+    def textLayout(node):
+        #http://etetoolkit.org/docs/latest/tutorial/tutorial_drawing.html
+        if not type(node.name) == int:
+            return
+        F = TextFace(node.name)
+        add_face_to_node(F, node, column=0, position="branch-right")
+
+    ts.layout_fn = pictureLayout
+    ts.rotation = 90
+    #t.show(tree_style=ts)
+    #print t
+    t.render("HammerTree.svg", tree_style = ts, w=800)
 
 if __name__ == '__main__':
-    getCurvatureMergeTrees('hmm_gpd/bicego_data', 7, 20, 20, doPlot = False)
+    plotHammerCoverTree()
+    #getCurvatureMergeTrees('hmm_gpd/bicego_data', 7, 20, 20, doPlot = False)

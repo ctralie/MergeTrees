@@ -8,11 +8,8 @@ def getTreeA():
     T = MergeTree(TotalOrder2DX)
     T.root = MergeNode(np.array([0, 5]))
     B = MergeNode(np.array([-6, 0]))
-    C = MergeNode(np.array([2, 4.7]))
+    C = MergeNode(np.array([8, 2]))
     T.root.addChildren([B, C])
-    D = MergeNode(np.array([1, 3.5]))
-    E = MergeNode(np.array([8, 2]))
-    C.addChildren([D, E])
     return T
 
 def getTreeAA():
@@ -28,11 +25,11 @@ def getTreeAA():
 def getTreeB():
     T = MergeTree(TotalOrder2DX)
     T.root = MergeNode(np.array([0, 5]))
-    B = MergeNode(np.array([-4, 4.7]))
-    C = MergeNode(np.array([8, 2]))
+    B = MergeNode(np.array([-4, 4]))
+    C = MergeNode(np.array([8, 1.5]))
     T.root.addChildren([B, C])
     D = MergeNode(np.array([-10, 0]))
-    E = MergeNode(np.array([-0.5, 3.5]))
+    E = MergeNode(np.array([-0.5, 3]))
     B.addChildren([D, E])
     return T
 
@@ -118,6 +115,14 @@ if __name__ == "__main__":
     C = getZSSMap(TA, TB, True)
     print(C.cost)
 
+    TA.render(offsetA, drawCurved = False)
+    TB.render(offsetB, drawCurved = False)
 
-    drawMap(C, offsetA, offsetB, drawSubdivided = True)
+    #drawMap(C, offsetA, offsetB, drawCurved = False, drawSubdivided = True)
+    ax = plt.gca()
+    yvals = TA.getfValsSorted().tolist() + TB.getfValsSorted().tolist()
+    yvals = np.sort(np.unique(np.array(yvals)))
+    ax.set_yticks(yvals)
+    ax.set_xticks([])
+    plt.grid()
     plt.show()

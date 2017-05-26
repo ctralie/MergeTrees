@@ -53,14 +53,21 @@ def do4x4Tests(doPlot = False, drawSubdivided = False):
     AllTs = TLUs + TLDs + TGUs + TGDs
     N = len(AllTs)
     #Plot the time series
-    if doPlot:
-        for i in range(N):
-            (X, T, Dgm) = AllTs[i]
-            plt.clf()
-            plt.plot(X[:, 0], X[:, 1])
-            plt.hold(True)
-            T.render(np.array([0, 0]))
-            plt.savefig("%i.svg"%i)
+    colors = ['b', 'r', 'g', 'k']
+    plt.figure(figsize=(16, 8))
+    for i in range(4):
+        plt.subplot(4, 1, i+1)
+        plt.hold(True)
+        left = 0
+        for k in range(4):
+            idx = i*4 + k
+            (X, T, Dgm) = AllTs[idx]
+            plt.plot(left + X[:, 0], X[:, 1], colors[i], lineWidth=3, linestyle = '--')
+            T.render(np.array([left, 0]), lineWidth=2, pointSize = 50, drawCurved = False)
+            left += np.max(X[:, 0])*1.1
+        plt.xlim([0, left])
+        plt.axis('off')
+    plt.savefig("TrendingExamples.svg", bbox_inches = 'tight')
 
     #Compute all pairwise distances (check that it's symmetric)
     DMergeTree = np.zeros((N, N))
@@ -154,6 +161,20 @@ if __name__ == '__main__':
     do4x4Tests()
     #testWasserstein()
     #doStabilityTest()
+
+if __name__ == '__main__2':
+    t1 = np.linspace(0, 1, 100)*2*np.pi*5
+    t2 = np.linspace(0, 1, 100)*2*np.pi*2
+    x = getTrendingLinear(t1, 1, 0.5*5/np.max(t1))
+    c = np.max(x)/2
+    y = getTrendingGaussian(t2, c, np.max(t2)/2, c)
+    
+    (X1, MT1, PD1) = setupTimeSeries(x)
+    (X2, MT2, PD2) = setupTimeSeries(y)
+    
+    subdivideTreesMutual(MT1, MT2)
+    MT1.render(np.array([0, 0]), drawCurved = False)
+    plt.savefig("BlackPink.svg", bbox_inches='tight')
 
 if __name__ == '__main__2':
     print("<table>")
