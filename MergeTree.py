@@ -54,9 +54,9 @@ def getParentNotSubdivided(N):
     else:
         return N.parent
 
-def subdivideTreesMutual(TA, TB):
-    valsA = TA.getfValsSorted()
-    valsB = TB.getfValsSorted()
+def subdivideTreesMutual(TA, TB, includeLeaves = False):
+    valsA = TA.getfValsSorted(includeLeaves)
+    valsB = TB.getfValsSorted(includeLeaves)
     #Subdivide both edges to make sure internal nodes get matched to internal nodes by horizontal lines
     #vals = np.array(valsA.tolist() + valsB.tolist())
     #vals = np.sort(np.unique(vals))
@@ -80,7 +80,6 @@ class ChiralMap(object):
 
 def drawMap(ChiralMap, offsetA, offsetB, yres = 0.5, drawSubdivided = True, drawCurved = True):
     (TA, TB) = (ChiralMap.TA, ChiralMap.TB)
-    plt.clf()
     plt.hold(True)
     #First draw the two trees
     ax = plt.subplot(111)
@@ -183,6 +182,37 @@ class MergeTree(object):
     def addOffset(self, offset):
         self.addOffsetRec(self.root, offset)
 
+    def getCriticalArrayRec(self, node, arr):
+        """
+        Do an inorder traversal of the tree to get the
+        critical array
+        """
+        C = node.children
+        L = None
+        R = None
+        if len(C) > 0:
+            if C[0].X[0] < node.X[0]:
+                L = C[0]
+            else:
+                R = C[0]
+        if len(C) > 1:
+            if C[1].X[0] < node.X[0]:
+                L = C[1]
+            else:
+                R = C[1]
+        if L:
+            self.getCriticalArrayRec(L, arr)
+        arr.append(node.getfVal())
+        if R:
+            self.getCriticalArrayRec(R, arr)
+
+
+    def getCriticalArray(self):
+        ret = []
+        self.getCriticalArrayRec(self.root, ret)
+        ret = np.array(ret)
+        return ret
+
     def renderRec(self, node, offset, drawSubdivided = True, drawCurved = True, lineWidth = 3, pointSize = 200):
         X = node.X + offset
         if node.subdivided:
@@ -224,15 +254,16 @@ class MergeTree(object):
         """
         self.sortChildrenTotalOrderRec(self.root)
 
-    def getfValsSortedRec(self, node):
-        self.fVals.append(node.getfVal())
+    def getfValsSortedRec(self, node, includeLeaves = True):
+        if includeLeaves or len(node.children) > 0:
+            self.fVals.append(node.getfVal())
         for n in node.children:
-            self.getfValsSortedRec(n)
+            self.getfValsSortedRec(n, includeLeaves)
 
-    def getfValsSorted(self):
+    def getfValsSorted(self, includeLeaves = True):
         """Get a sorted list of all of the function values"""
         self.fVals = []
-        self.getfValsSortedRec(self.root)
+        self.getfValsSortedRec(self.root, includeLeaves)
         self.fVals = sorted(self.fVals)
         self.fVals = np.unique(self.fVals)
         return self.fVals
@@ -317,7 +348,7 @@ def wrapMergeTreeTimeSeries(MT, X):
     """
     s is a time series from the GDA library, X is an Nx2 numpy
     array of the corresponding coordinates
-    Return tuple (MergeTree, PersistenceDiagram)
+    Return Merge Tree Object
     """
     #First extract merge tree
     T = MergeTree(TotalOrder2DX)
@@ -350,9 +381,7 @@ def UFFind(UFP, u):
     """
     if not (UFP[u] == u):
         UFP[u] = UFFind(UFP, UFP[u])
-        return UFP[u]
-    else:
-        return u
+    return UFP[u]
 
 def UFUnion(UFP, u, v, idxorder):
     """
@@ -402,6 +431,9 @@ def mergeTreeFrom1DTimeSeries(x):
         #Find the oldest class, merge earlier classes with this class,
         #and record the merge events and birth/death times
         oldestNeighb = neighbs[np.argmin([idxorder[n] for n in neighbs])]
+        #No matter, what, the current node becomes part of the
+        #oldest class to which it is connected
+        UFUnion(UFP, oldestNeighb, i, idxorder)
         if len(neighbs) > 1: #A nontrivial merge
             MT[i] = [UFR[n] for n in neighbs] #Add merge tree children
             for n in neighbs:
@@ -412,9 +444,6 @@ def mergeTreeFrom1DTimeSeries(x):
             #Change the representative for this class to be the
             #saddle point
             UFR[oldestNeighb] = i
-        #No matter, what, the current node becomes part of the
-        #oldest class to which it is connected
-        UFUnion(UFP, oldestNeighb, i, idxorder)
     #Add the essential class
     I.append([np.min(x), np.max(x)])
     I = np.array(I)

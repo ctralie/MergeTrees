@@ -118,7 +118,7 @@ if __name__ == "__main__":
     TA.render(offsetA, drawCurved = False)
     TB.render(offsetB, drawCurved = False)
 
-    #drawMap(C, offsetA, offsetB, drawCurved = False, drawSubdivided = True)
+    drawMap(C, offsetA, offsetB, drawCurved = False, drawSubdivided = True)
     ax = plt.gca()
     yvals = TA.getfValsSorted().tolist() + TB.getfValsSorted().tolist()
     yvals = np.sort(np.unique(np.array(yvals)))

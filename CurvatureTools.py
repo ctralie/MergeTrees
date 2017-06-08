@@ -7,8 +7,14 @@ import scipy.io as sio
 import scipy.misc
 import matplotlib.animation as animation
 
-#Get smoothed curvature vectors up to a particular order
 def getCurvVectors(X, MaxOrder, sigma, loop = False, m = 'nearest'):
+    """
+    Get smoothed curvature vectors up to a particular order
+    :param X: An N x d matrix of points in R^d
+    :param MaxOrder: The maximum order of torsion to compute (e.g. 3 for position, velocity, and curvature, and torsion)
+    :param sigma: The smoothing amount
+    :param loop: Treat this trajectory as a topological loop (i.e. add an edge between first and last point?)
+    """
     if loop:
         m = 'wrap'
     XSmooth = gf1d(X, sigma, axis=0, order = 0, mode = m)

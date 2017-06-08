@@ -95,7 +95,7 @@ def do4x4Tests(doPlot = False, drawSubdivided = False):
                 DMergeTree[i, j] = C.cost
                 offset = np.max(XB[:, 0]) - np.min(XA[:, 0]) + 5
                 plt.clf()
-                drawMap(C, np.array([0, 0]), np.array([offset, 0]), drawSubdivided = False)
+                drawMap(C, np.array([0, 0]), np.array([offset, 0]), drawSubdivided = True)
                 plt.savefig("Map%i_%i.svg"%(i, j))
             else:
                 DMergeTree[i, j] = C
@@ -104,8 +104,8 @@ def do4x4Tests(doPlot = False, drawSubdivided = False):
                 DWasserstein[i, j] = getWassersteinDist(DgmA, DgmB)
                 toc = time.time()
                 WSTime += toc-tic
-        print "Elapsed Time Merge Tree: ", MTTime
-        print "Elapsed Time Wasserstein: ", WSTime
+        print("Elapsed Time Merge Tree: ", MTTime)
+        print("Elapsed Time Wasserstein: ", WSTime)
         sio.savemat("PairwiseDs.mat", {"DEuclidean":DEuclidean, "DMergeTree":DMergeTree, "DWasserstein":DWasserstein})
 
 def doStabilityTest():
