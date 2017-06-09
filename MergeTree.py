@@ -361,7 +361,8 @@ def wrapMergeTreeTimeSeries(MT, X):
     maxVal = -np.inf
     for idx0 in MT:
         for idx in [idx0] + list(MT[idx0]):
-            nodes[idx] = MergeNode(X[idx, :])
+            if not idx in nodes:
+                nodes[idx] = MergeNode(X[idx, :])
             if y[idx] > maxVal:
                 root = nodes[idx]
                 maxVal = y[idx]
@@ -371,6 +372,15 @@ def wrapMergeTreeTimeSeries(MT, X):
         for cidx in MT[idx]:
             nodes[idx].addChild(nodes[cidx])
     return T
+
+def setupTimeSeries(x):
+    N = len(x)
+    X = np.zeros((N, 2))
+    X[:, 0] = np.arange(N)
+    X[:, 1] = x
+    (MT, PD) = mergeTreeFrom1DTimeSeries(x)
+    MT = wrapMergeTreeTimeSeries(MT, X)
+    return (X, MT, PD)
 
 def UFFind(UFP, u):
     """

@@ -7,6 +7,7 @@ from BottleneckWrapper import *
 from TrendingExamples import *
 from CoverTree import *
 import subprocess
+import _SequenceAlignment as SAC
 
 def drawLineColored(idx, x, C):
     plt.hold(True)
@@ -51,8 +52,50 @@ def plotCurvature(x, v, c, C, Colors, MT, DGM, plotArrows = False):
     plt.ylim([-0.5, 0.5])
     plt.title("Persistence Diagram")
 
+def tryTriangleIneqExample(dirName, NClasses, NPerClass, sigma, i, j, k, doPlot = True):
+    N = NClasses*NPerClass
+    idx = 0
+    (Ti, Tj, Tk) = (None, None, None)
+    filenames = []
+    for cl in range(1, NClasses+1):
+        for num in range(1, NPerClass+1):
+            filenames.append("%s/Class%i_Sample%i.mat"%(dirName, cl, num))
+
+    MTs = []
+    idxs = [i, j, k]
+    for idx in idxs:
+        print filenames[idx]
+        x = sio.loadmat(filenames[idx])['x']
+        x = np.array(x, dtype=np.float32)
+        curvs = getCurvVectors(x, 2, sigma)
+        v = curvs[1]
+        vMag = np.sum(v**2, 1)
+        vMag[vMag == 0] = 1
+        vMag = np.sqrt(vMag)
+        v = v/vMag[:, None]
+        c = curvs[2]
+        Curv = np.cross(v, c, 1)
+        MTs.append(setupTimeSeries(Curv))
+
+    #Now compute all of the pairwise merge tree and persistence diagram distances
+    D = np.zeros((3, 3))
+    for i in range(3):
+        (XA, TA, DgmA) = MTs[i]
+        print "Doing %i of 3..."%i
+        tic = time.time()
+        for j in range(i+1, 3):
+            (XB, TB, DgmB) = MTs[j]
+            #Clone so subdivided nodes don't accumulate
+            TAClone = TA.clone()
+            TBClone = TB.clone()
+            C = getZSSMap(TAClone, TBClone, doPlot)
+            if doPlot:
+                offset = np.max(XB[:, 0]) - np.min(XA[:, 0]) + 5
+                plt.clf()
+                drawMap(C, np.array([0, 0]), np.array([offset, 0]), drawSubdivided = False)
+                plt.savefig("Map%i_%i.svg"%(idxs[i], idxs[j]))
+
 def getCurvatureMergeTrees(dirName, NClasses, NPerClass, sigma, doPlot = True):
-    sigma = 10
     plt.figure(figsize=(18,5))
     N = NClasses*NPerClass
     i = 0
@@ -84,6 +127,7 @@ def getCurvatureMergeTrees(dirName, NClasses, NPerClass, sigma, doPlot = True):
     DMergeTree = np.zeros((N, N))
     DWasserstein = np.zeros((N, N))
     DBottleneck = np.zeros((N, N))
+    DDTW = np.zeros((N, N))
     for i in range(N):
         (XA, TA, DgmA) = MTs[i]
         print "Doing %i of %i..."%(i, N)
@@ -104,9 +148,15 @@ def getCurvatureMergeTrees(dirName, NClasses, NPerClass, sigma, doPlot = True):
                 DMergeTree[i, j] = C
             DWasserstein[i, j] = getWassersteinDist(DgmA, DgmB)
             DBottleneck[i, j] = getBottleneckDist(DgmA, DgmB)
+
+            #Compute DTW
+            x1 = XA[:, 1].flatten()
+            x2 = XB[:, 1].flatten()
+            CSM = np.abs(x1[:, None] - x2[None, :])
+            DDTW[i, j] = SAC.DTW(CSM)
         toc = time.time()
         print "Elapsed Time: ", toc-tic
-        sio.savemat("DCurvatures.mat", {"DMergeTree":DMergeTree, "DWasserstein":DWasserstein, "DBottleneck":DBottleneck})
+        sio.savemat("DCurvatures.mat", {"DMergeTree":DMergeTree, "DWasserstein":DWasserstein, "DBottleneck":DBottleneck, "DDTW":DDTW})
 
 def plotCurve(x):
     cmap = plt.get_cmap('Spectral')
@@ -190,5 +240,6 @@ def plotHammerCoverTree():
     t.render("HammerTree.svg", tree_style = ts, w=800)
 
 if __name__ == '__main__':
-    plotHammerCoverTree()
-    #getCurvatureMergeTrees('hmm_gpd/bicego_data', 7, 20, 20, doPlot = False)
+    #plotHammerCoverTree()
+    #getCurvatureMergeTrees('hmm_gpd/bicego_data', 7, 20, 10, doPlot = False)
+    tryTriangleIneqExample('hmm_gpd/bicego_data', 7, 20, 10, 12, 99, 104)

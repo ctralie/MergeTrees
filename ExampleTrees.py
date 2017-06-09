@@ -104,7 +104,7 @@ if __name__ == "__main__":
     xl = np.min(X[:, 0])
     xr = np.max(X[:, 0])
 
-    #TA.addOffset(np.array([0, 0.3]))
+    TA.addOffset(np.array([0, 0.3]))
     TB = getTreeB()
     #TB = getPaul2()
     offsetA = np.array([0, 0])

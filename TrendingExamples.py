@@ -13,15 +13,6 @@ def getTrendingGaussian(t, a, sigma, b):
     x = a*np.cos(t)*np.exp(-t**2/(2*sigma**2)) + b
     return x
 
-def setupTimeSeries(x):
-    N = len(x)
-    X = np.zeros((N, 2))
-    X[:, 0] = np.arange(N)
-    X[:, 1] = x
-    (MT, PD) = mergeTreeFrom1DTimeSeries(x)
-    MT = wrapMergeTreeTimeSeries(MT, X)
-    return (X, MT, PD)
-
 def do4x4Tests(doPlot = False, drawSubdivided = False):
     N = 100
     NPeriods = 5.7
