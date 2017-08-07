@@ -5,6 +5,8 @@ from bisect import bisect_left
 from functools import cmp_to_key
 from PolynomialFit import *
 
+EDIT_ASSERTS = True
+
 ##########################################################
 #              Partial Order Functions                   #
 ##########################################################
@@ -122,19 +124,26 @@ class DebugOffsets(object):
 
 class MergeNode(object):
     """
-    X: Rendering position.  Last coordinate is assumed to be the function value
-    to be the function value
+    X: Rendering position
+    fval: Function value (assumed to be last coordinate of X if not provided)
     subdivided: Whether this node was added in a subdivision
     """
-    def __init__(self, X, subdivided = False):
+    def __init__(self, X, fval = None, subdivided = False):
         self.parent = None
         self.children = []
         self.X = np.array(X, dtype=np.float64)
+        if not fval:
+            self.fval = X[-1]
+        else:
+            self.fval = fval
         self.subdivided = subdivided
         self.idx = -1
 
     def getfVal(self):
-        return self.X[-1]
+        return self.fval
+    
+    def setfVal(self, fval):
+        self.fval = fval
 
     def addChild(self, N):
         self.children.append(N)
@@ -277,6 +286,21 @@ class MergeTree(object):
     def updateNodesList(self):
         self.nodesList = []
         self.updateNodesListRec(self.root)
+    
+    def containsNodeRec(self, node, thisN):
+        """
+        Recursive helper function for node containment
+        :param node: The node object being sought
+        :param thisN: The current node in the tree search
+        """
+        if thisN == node:
+            return True
+        for C in thisN.children:
+            return self.containsNodeRec(node, C)
+        return False
+    
+    def containsNode(self, node):
+        return self.containsNodeRect(node, self.root)
 
     def getCriticalPtsList(self):
         """Return an Nxd numpy array of the N critical points"""
@@ -343,8 +367,175 @@ class MergeTree(object):
     def clearSubdividedNodes(self):
         """Remove all subdivided nodes"""
         print("TODO")
+    
+    ##########################################################
+    #                     Edit Operations                    #
+    ##########################################################
+    def changeF(self, v, y, asserts = EDIT_ASSERTS):
+        """
+        Change a function value f(v) to y, with f(c) < y < f(p(v)) for all
+        children c of v.
+        :returns: |f(v) - y|
+        """
+        if asserts:
+            #Make sure this node is in the node list
+            if not self.containsNode(v):
+                print("Error: Trying to change function value of node not in tree")
+                return -1
+            #Make sure the f edit value is below the parent and above
+            #all children
+            pval = np.inf
+            if v.parent:
+                pval = v.parent.getfVal()
+            if y > pval:
+                print("Error: Moving node to %g above its parent at %g"(y, pval))
+                return -1
+            for c in v.children:
+                cval = c.getfVal()
+                if f < cval:
+                    print("Error: Moving node to %g below one of its children at %g"%(y, cval))
+                    return -1
+        yorig = v.getfVal()
+        v.setfVal(y)
+        return np.abs(y - yorig)
+    
+    def collapseEdge(self, a, b, asserts = EDIT_ASSERTS):
+        """
+        Collapse an edge (a, b) in the tree, where neither a nor b is a regular vertex.
+        The cost is f(a) - f(b).  Vertex b is deleted and all of the children of b are
+        inherited by a
+        :returns: Cost f(a) - f(b)
+        """
+        if asserts:
+            if not self.containsNode(a):
+                print("Error: Trying to collapse to vertex that doesn't exist in tree")
+                return -1
+            if not self.containsNode(b):
+                print("Error: Trying to collapse a vertex that doesn't exist in tree")
+                return -1
+        if not b in a.children:
+            print("Error: Trying to collapse edge (a, b), but b is not a child of a")
+            return -1
+        a.children += b.children
+        a.children.remove(b)
+        aval = a.getfVal()
+        bval = b.getfVal()
+        if bval > aval:
+            print("Error: bval %g > aval %g when collapsing edge (a, b)"%(bval, aval))
+            return -1
+        return aval - bval
+    
+    def splitChildren(self, a, fv, c1, c2, asserts = EDIT_ASSERTS):
+        """
+        Split the children c = c1 union c2 of node a by creating a new node v
+        as a child of a, with f(a) > f(v) > f(c2), so that a now has the children
+        c1,v and v has children c2.
+        :returns: Cost f(a) - f(v)
+        """
+        if asserts:
+            if not self.containsNode(a):
+                print("Trying to split the children of a nodes that's not in the tree")
+                return -1
+            #Make sure a's children are c1 union c2
+            if not set(c1 + c2) == set(a.children):
+                print("Error: Trying to do a children split at a, but the union of c1 and c2 is not a's children")
+                return -1
+            #Make sure f(a) > f(v) > f(c) for all children c of a
+            if fv > a.getfVal():
+                print("Error: Trying to split children of a, but split vertex at %g is above a at %g"%(fv, a.getfVal()))
+                return -1
+            for c in c2:
+                if fv < c.getfVal():
+                    print("Error: Trying to split children of a, but split vertex at %g is below one of a's children at %g"%(fv, c.getfVal()))
+                    return -1
+        
+        #Pick one of the children in c2 and use it to create an interpolated position
+        X = np.array(a.X)
+        if len(c2) > 0:
+            c = c2[0]
+            t = (a.getfVal() - fv)/(a.getfVal() - c.getfVal())
+            X = t*c.X + (1-t)*X
+        V = MergeNode(X, fv)
+        a.children = c1 + [V]
+        V.children = c2
+        V.parent = a
+        return a.getfVal() - fv
+    
+    def addEdge(self, a, fb, asserts = EDIT_ASSERTS):
+        """
+        Add an edge (a, b) rooted at a regular node a with function value 
+        fb = y <= f(a)
+        :returns: cost f(a) - fb
+        """
+        if asserts:
+            if not self.containsNode(a):
+                print("Trying to add an edge to a vertex that's not in the tree")
+                return -1
+        if fb > a.getfVal():
+            print("Error: adding leaf edge (a, b) at height %g above vertex a at %g"%(fb, a.getfVal()))
+            return -1
+        if not len(a.children) == 1:
+            print("Error: Adding edge at node which is not regular (%i children)"%(len(a.children)))
+            return -1
+        X = np.array(a.X)
+        X[-1] = fb
+        b = MergeNode(x, fb)
+        b.parent = a
+        a.children.append(b)
+        return a.getfVal() - fb
+    
+    def deleteRegVertex(self, v, asserts = EDIT_ASSERTS):
+        """
+        Delete a regular vertex at a cost of zero.  All of v's children
+        become children of v's parent
+        """
+        if asserts:
+            if not self.containsNode(v):
+                print("Trying to delete a regular vertex that's not in the tree")
+                return -1
+        if not len(v.children) == 1 or not v.parent:
+            print("Error: Trying to delete a vertex which is not a regular vertex")
+            return -1
+        v.parent.children.remove(v)
+        v.parent.children += v.children
+        return 0
+    
+    def insertRegVertex(self, a, b, y, asserts = EDIT_ASSERTS):
+        """
+        Insert a regular vertex v at height y on the edge (a, b) with f(b) <= y <= f(a)
+        at a cost of 0
+        """
+        if asserts:
+            if not self.containsNode(a):
+                print("Error: Trying to collapse to vertex that doesn't exist in tree")
+                return -1
+            if not self.containsNode(b):
+                print("Error: Trying to collapse a vertex that doesn't exist in tree")
+                return -1
+            if y > a.getfVal():
+                print("Error: Trying to insert an internal node at height %g above segment with max %g"%(y, a.getfVal()))
+                return -1
+            if y < b.getfVal():
+                print("Error: Trying to insert an internal node at height %g below segment with min %g"%(y, b.getfVal()))
+        
+        if not b in a.children:
+            print("Error: Trying to insert regular vertex into (a, b), but (a, b) is not an edge in the tree")
+            return -1
+        a.children.remove(b)
+        v = MeshNode(0.5*(a.X + b.X))
+        #E = E union (a, v)
+        a.children.append(v)
+        v.parent = a
+        #E = E union (v, b)
+        v.children = [b]
+        b.parent = v
+        return 0
+        
+       
+            
+         
 
-def wrapMergeTreeTimeSeries(MT, X):
+def wrapMergeTreeTimeSeries(MT, PS, X):
     """
     s is a time series from the GDA library, X is an Nx2 numpy
     array of the corresponding coordinates
@@ -363,6 +554,7 @@ def wrapMergeTreeTimeSeries(MT, X):
         for idx in [idx0] + list(MT[idx0]):
             if not idx in nodes:
                 nodes[idx] = MergeNode(X[idx, :])
+                nodes[idx].P = PS[idx]
             if y[idx] > maxVal:
                 root = nodes[idx]
                 maxVal = y[idx]
@@ -378,8 +570,9 @@ def setupTimeSeries(x):
     X = np.zeros((N, 2))
     X[:, 0] = np.arange(N)
     X[:, 1] = x
-    (MT, PD) = mergeTreeFrom1DTimeSeries(x)
-    MT = wrapMergeTreeTimeSeries(MT, X)
+    (MT, PS, PD) = mergeTreeFrom1DTimeSeries(x)
+    MT = wrapMergeTreeTimeSeries(MT, PS, X)
+    MT.PS = PS
     return (X, MT, PD)
 
 def UFFind(UFP, u):
@@ -414,7 +607,7 @@ def mergeTreeFrom1DTimeSeries(x):
     (NOTE: This code is pretty general and could work to create merge trees
     on any domain if the neighbor set was updated)
     :param x: 1D array representing the time series
-    :return: (Merge Tree dictionary, Persistence diagram)
+    :return: (Merge Tree dictionary, Persistences dictionary, Persistence diagram)
     """
     #Add points from the bottom up
     N = len(x)
@@ -424,6 +617,7 @@ def mergeTreeFrom1DTimeSeries(x):
     UFP = np.arange(N) #Pointer to oldest indices
     UFR = np.arange(N) #Representatives of classes
     I = [] #Persistence diagram
+    PS = {} #Persistences for merge tree nodes
     MT = {} #Merge tree
     for i in idx:
         neighbs = set([])
@@ -450,11 +644,19 @@ def mergeTreeFrom1DTimeSeries(x):
                 if not (n == oldestNeighb):
                     #Record persistence event
                     I.append([x[n], x[i]])
+                    pers = x[i] - x[n]
+                    PS[i] = pers
+                    PS[n] = pers
                 UFUnion(UFP, oldestNeighb, n, idxorder)
             #Change the representative for this class to be the
             #saddle point
             UFR[oldestNeighb] = i
     #Add the essential class
-    I.append([np.min(x), np.max(x)])
+    idx1 = np.argmin(x)
+    idx2 = np.argmax(x)
+    [b, d] = [x[idx1], x[idx2]]
+    I.append([b, d])
     I = np.array(I)
-    return (MT, I)
+    PS[idx1] = d-b
+    PS[idx2] = d-b
+    return (MT, PS, I)

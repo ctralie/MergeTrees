@@ -35,6 +35,12 @@ def updateCost(ZSSA, ZSSB):
     cost = np.abs(A.getfVal() - B.getfVal())
     return cost
 
+def insertRemoveCostPs(ZSSNode):
+    return ZSSNode.P
+
+def updateCostPs(ZSSA, ZSSB):
+    return np.abs(ZSSA.P - ZSSB.P)
+
 def getZSSMap(TA, TB, computeMap = False):
     '''Computes the CTOMT distance between trees TA and TB
     :param TA: Tree A
@@ -56,7 +62,7 @@ def getZSSMap(TA, TB, computeMap = False):
     TBZSS = convertToZSSTree(TB)
 
     #Call the ZSS library and my backtracing library
-    ret = distance(TAZSS, TBZSS, Node.get_children, insertRemoveCost, insertRemoveCost, updateCost, computeMap)
+    ret = distance(TAZSS, TBZSS, Node.get_children, insertRemoveCostPs, insertRemoveCostPs, updateCostPs, computeMap)
     if not computeMap:
         #If only the cost was computed, return it
         return ret

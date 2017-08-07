@@ -241,5 +241,5 @@ def plotHammerCoverTree():
 
 if __name__ == '__main__':
     #plotHammerCoverTree()
-    #getCurvatureMergeTrees('hmm_gpd/bicego_data', 7, 20, 10, doPlot = False)
-    tryTriangleIneqExample('hmm_gpd/bicego_data', 7, 20, 10, 12, 99, 104)
+    getCurvatureMergeTrees('hmm_gpd/bicego_data', 7, 20, 10, doPlot = False)
+    #tryTriangleIneqExample('hmm_gpd/bicego_data', 7, 20, 10, 12, 99, 104)
