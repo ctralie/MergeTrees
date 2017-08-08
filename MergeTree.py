@@ -296,11 +296,12 @@ class MergeTree(object):
         if thisN == node:
             return True
         for C in thisN.children:
-            return self.containsNodeRec(node, C)
+            if self.containsNodeRec(node, C):
+                return True
         return False
     
     def containsNode(self, node):
-        return self.containsNodeRect(node, self.root)
+        return self.containsNodeRec(node, self.root)
 
     def getCriticalPtsList(self):
         """Return an Nxd numpy array of the N critical points"""
@@ -397,7 +398,8 @@ class MergeTree(object):
                     return -1
         yorig = v.getfVal()
         v.setfVal(y)
-        return np.abs(y - yorig)
+        v.X[-1] = y
+        return {'cost':np.abs(y - yorig)}
     
     def collapseEdge(self, a, b, asserts = EDIT_ASSERTS):
         """
@@ -416,14 +418,16 @@ class MergeTree(object):
         if not b in a.children:
             print("Error: Trying to collapse edge (a, b), but b is not a child of a")
             return -1
-        a.children += b.children
         a.children.remove(b)
+        a.children += b.children
+        for c in b.children:
+            c.parent = a
         aval = a.getfVal()
         bval = b.getfVal()
         if bval > aval:
             print("Error: bval %g > aval %g when collapsing edge (a, b)"%(bval, aval))
             return -1
-        return aval - bval
+        return {'cost':aval - bval}
     
     def splitChildren(self, a, fv, c1, c2, asserts = EDIT_ASSERTS):
         """
@@ -453,13 +457,15 @@ class MergeTree(object):
         X = np.array(a.X)
         if len(c2) > 0:
             c = c2[0]
-            t = (a.getfVal() - fv)/(a.getfVal() - c.getfVal())
-            X = t*c.X + (1-t)*X
-        V = MergeNode(X, fv)
-        a.children = c1 + [V]
-        V.children = c2
-        V.parent = a
-        return a.getfVal() - fv
+            t = (fv - c.getfVal())/(a.getfVal() - c.getfVal())
+            X = t*X + (1-t)*c.X
+        v = MergeNode(X, fv)
+        a.children = c1 + [v]
+        v.parent = a
+        v.children = c2
+        for c in c2:
+            c.parent = v
+        return {'cost':a.getfVal() - fv, 'v':v}
     
     def addEdge(self, a, fb, asserts = EDIT_ASSERTS):
         """
@@ -479,10 +485,10 @@ class MergeTree(object):
             return -1
         X = np.array(a.X)
         X[-1] = fb
-        b = MergeNode(x, fb)
+        b = MergeNode(X, fb)
         b.parent = a
         a.children.append(b)
-        return a.getfVal() - fb
+        return {'cost':a.getfVal() - fb, 'v':b}
     
     def deleteRegVertex(self, v, asserts = EDIT_ASSERTS):
         """
@@ -498,7 +504,9 @@ class MergeTree(object):
             return -1
         v.parent.children.remove(v)
         v.parent.children += v.children
-        return 0
+        for c in v.children:
+            c.parent = v.parent
+        return {'cost':0}
     
     def insertRegVertex(self, a, b, y, asserts = EDIT_ASSERTS):
         """
@@ -522,14 +530,16 @@ class MergeTree(object):
             print("Error: Trying to insert regular vertex into (a, b), but (a, b) is not an edge in the tree")
             return -1
         a.children.remove(b)
-        v = MeshNode(0.5*(a.X + b.X))
+        
+        t = (y - b.getfVal())/(a.getfVal() - b.getfVal())
+        v = MergeNode(t*a.X + (1-t)*b.X, y)
         #E = E union (a, v)
         a.children.append(v)
         v.parent = a
         #E = E union (v, b)
         v.children = [b]
         b.parent = v
-        return 0
+        return {'cost':0, 'v':v}
         
        
             

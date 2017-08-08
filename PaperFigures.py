@@ -147,8 +147,16 @@ def PDExample():
     #plt.savefig("PDSnippets.svg", bbox_inches = 'tight')
     plt.savefig("MergeTreeSnippets.svg", bbox_inches = 'tight')
     
+def renderNodeLabels(T, offset):
+    T.updateNodesList()
+    yvals = []
+    for node in T.nodesList:
+        plt.text(offset+node.X[0]-0.9, node.X[1]+0.1, node.name)
+        yvals.append(node.X[1])
+    return yvals
 
 def editExample():
+    plt.figure(figsize=(8*3.5, 5))
     T = MergeTree(TotalOrder2DX)
     T.root = MergeNode(np.array([0, 10]))
     G = T.root; G.name = "G"
@@ -164,19 +172,65 @@ def editExample():
     T.render(np.array([0, 0]))
     T.updateNodesList()
     
+    offset = 0
     names = {A:'A', B:'B', C:'C', D:'D', E:'E', F:'F', G:'G'}
-    yvals = []
-    for node in T.nodesList:
-        plt.text(node.X[0]+0.2, node.X[1]+0.2, node.name)
-        yvals.append(node.X[1])
+    yvals = renderNodeLabels(T, offset)
+
+    T.changeF(B, 3.5)
+    B.X[0] += 1
+    offset += 12
+    T.render(np.array([offset, 0]))
+    yvals += renderNodeLabels(T, offset)   
+
+    T.collapseEdge(E, C)
+    offset += 12
+    T.render(np.array([offset, 0]))
+    yvals += renderNodeLabels(T, offset)    
+    
+    T.deleteRegVertex(E)
+    offset += 12
+    T.render(np.array([offset, 0]))
+    yvals += renderNodeLabels(T, offset)    
+    
+    T.collapseEdge(G, F)
+    offset += 12
+    T.render(np.array([offset, 0]))
+    yvals += renderNodeLabels(T, offset)    
+    
+    res = T.splitChildren(G, 8.5, [B], [A, D])
+    H = res['v']
+    H.name = "H"
+    H.X[0] -= 1
+    D.X[0] -= 1
+    offset += 12
+    T.render(np.array([offset, 0]))
+    yvals += renderNodeLabels(T, offset)   
+    
+    res = T.insertRegVertex(H, A, 3)
+    I = res['v']
+    I.name = "I"
+    print "I.getfVal() = ", I.getfVal()
+    offset += 12
+    T.render(np.array([offset, 0]))
+    yvals += renderNodeLabels(T, offset)   
+    
+    res = T.addEdge(I, 2.5)
+    J = res['v']
+    J.name = "J"
+    J.X[0] += 1
+    offset += 12
+    T.render(np.array([offset, 0]))
+    yvals += renderNodeLabels(T, offset)   
+    
     yvals = np.array(yvals)
     yvals = np.unique(yvals)
     ax = plt.gca()
     ax.set_yticks(yvals)
     ax.set_xticks([])
+    plt.xlim([-8, offset+6])
     plt.grid()
     
-    plt.show()
+    plt.savefig("EditExample.svg", bbox_inches = 'tight')
 
 if __name__ == '__main__':
     #PDExample()
