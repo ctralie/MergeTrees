@@ -344,7 +344,7 @@ class MergeTree(object):
                 for k in range(len(splitVals)):
                     t = (splitVals[k] - a)/float(b - a)
                     X = t*N1.X + (1-t)*N2.X
-                    N = MergeNode(X, True)
+                    N = MergeNode(X, subdivided = True)
                     if k > 0:
                         newNodes[k-1].addChild(N)
                     newNodes.append(N)
@@ -393,7 +393,7 @@ class MergeTree(object):
                 return -1
             for c in v.children:
                 cval = c.getfVal()
-                if f < cval:
+                if y < cval:
                     print("Error: Moving node to %g below one of its children at %g"%(y, cval))
                     return -1
         yorig = v.getfVal()
@@ -438,7 +438,7 @@ class MergeTree(object):
         """
         if asserts:
             if not self.containsNode(a):
-                print("Trying to split the children of a nodes that's not in the tree")
+                print("Trying to split the children of a node that's not in the tree")
                 return -1
             #Make sure a's children are c1 union c2
             if not set(c1 + c2) == set(a.children):

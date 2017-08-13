@@ -62,7 +62,7 @@ def getZSSMap(TA, TB, computeMap = False):
     TBZSS = convertToZSSTree(TB)
 
     #Call the ZSS library and my backtracing library
-    ret = distance(TAZSS, TBZSS, Node.get_children, insertRemoveCostPs, insertRemoveCostPs, updateCostPs, computeMap)
+    ret = distance(TAZSS, TBZSS, Node.get_children, insertRemoveCost, insertRemoveCost, updateCost, computeMap)
     if not computeMap:
         #If only the cost was computed, return it
         return ret
